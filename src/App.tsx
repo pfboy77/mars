@@ -1,24 +1,48 @@
-import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ResourceCard from "./components/ResourceCard";
 import { Resource, GameState } from "./types";
+import React, { useState, useEffect } from "react";
+
 
 const initialResources: Resource[] = [
-  { id: uuidv4(), name: "メガクレジット", amount: 20, production: 0, isMegaCredit: true },
-  { id: uuidv4(), name: "鋼鉄", amount: 5, production: 0 },
+  { id: uuidv4(), name: "MC", amount: 20, production: 0, isMegaCredit: true },
+  { id: uuidv4(), name: "建材", amount: 5, production: 0 },
   { id: uuidv4(), name: "チタン", amount: 3, production: 0 },
   { id: uuidv4(), name: "植物", amount: 4, production: 2 },
-  { id: uuidv4(), name: "エネルギー", amount: 2, production: 1, isEnergy: true },
-  { id: uuidv4(), name: "熱", amount: 0, production: 0, isHeat: true }
+  { id: uuidv4(), name: "電力", amount: 2, production: 1, isEnergy: true },
+  { id: uuidv4(), name: "発熱", amount: 0, production: 0, isHeat: true }
 ];
 
+const buttonStyle = {
+  width: "32px",
+  height: "32px",
+  fontSize: "16px",
+  lineHeight: "1",
+  textAlign: "center" as const,
+};
+
+
 function App() {
-  const [resources, setResources] = useState<Resource[]>(initialResources);
-  const [tr, setTr] = useState(20);
+  const savedData = localStorage.getItem("gameState");
+const parsed = savedData ? JSON.parse(savedData) : null;
+
+const [resources, setResources] = useState<Resource[]>(
+  parsed?.resources || initialResources
+);
+const [tr, setTr] = useState<number>(
+  parsed?.tr ?? 20
+);
+
   const [deltaValues, setDeltaValues] = useState<Record<string, number>>({});
   const [undoStack, setUndoStack] = useState<GameState[]>([]);
   const [redoStack, setRedoStack] = useState<GameState[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const data = JSON.stringify({ resources, tr });
+    localStorage.setItem("gameState", data);
+  }, [resources, tr]);
+  
 
   const saveState = () => {
     setUndoStack([...undoStack, { resources: [...resources], tr }]);
@@ -100,24 +124,24 @@ function App() {
           marginBottom: 16,
         }}
       >
-        <button onClick={handleUndo} disabled={undoStack.length === 0}>↩︎ アンドゥ</button>
-        <button onClick={handleRedo} disabled={redoStack.length === 0}>↪︎ リドゥ</button>
+        <button onClick={handleUndo} disabled={undoStack.length === 0}>↩︎ Undo</button>
+        <button onClick={handleRedo} disabled={redoStack.length === 0}>↪︎ Redo</button>
 
         <div style={{ display: "inline-flex", alignItems: "center", marginLeft: 8 }}>
           <span>TR:</span>
           <button
-            onClick={() => setTr(prev => Math.max(prev - 1, 0))}
-            style={{ margin: "0 8px" }}
-          >−</button>
-          <span>{tr}</span>
-          <button
-            onClick={() => setTr(prev => Math.min(prev + 1, 100))}
-            style={{ margin: "0 8px" }}
-          >＋</button>
+  onClick={() => setTr(prev => Math.max(prev - 1, 0))}
+  style={{ ...buttonStyle, marginRight: 4 }}
+>−</button>
+<span>{tr}</span>
+<button
+  onClick={() => setTr(prev => Math.min(prev + 1, 100))}
+  style={{ ...buttonStyle, marginLeft: 4 }}
+>＋</button>
         </div>
 
         <button onClick={handleProduction} style={{ backgroundColor: "#007bff", color: "white", padding: "4px 8px", borderRadius: 4 }}>
-          ▶︎ 生産
+          ▶︎ 産出
         </button>
         <button onClick={handleReset} style={{ backgroundColor: "red", color: "white", padding: "4px 8px", borderRadius: 4 }}>
           リセット

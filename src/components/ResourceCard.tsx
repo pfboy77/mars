@@ -10,6 +10,14 @@ interface Props {
   updateProduction: (value: number) => void;
 }
 
+const buttonStyle = {
+  width: "32px",
+  height: "32px",
+  fontSize: "16px",
+  lineHeight: "1",
+  textAlign: "center" as const,
+};
+
 const ResourceCard: React.FC<Props> = ({
   resource,
   delta,
@@ -19,42 +27,58 @@ const ResourceCard: React.FC<Props> = ({
   updateProduction
 }) => {
   return (
-    <div style={{ border: "1px solid #ccc", borderRadius: 8, padding: 8, minHeight: 120 }}>
+    <div
+      style={{
+        border: "1px solid #ccc",
+        borderRadius: 8,
+        padding: 8,
+        minHeight: 120,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between"
+      }}
+    >
       <h4>{resource.name}: {resource.amount}</h4>
-      <input
-        type="number"
-        value={delta}
-        onChange={e => setDelta(Number(e.target.value))}
-        style={{ width: 50 }}
-      />
-      <button onClick={addAmount}>＋</button>
-      <button onClick={subtractAmount}>−</button>
-      <div>
-      <div style={{ marginTop: 8 }}>
-  <span>生産: </span>
-  <button
-    onClick={() =>
-      updateProduction(
-        Math.max(resource.production - 1, resource.isMegaCredit ? -10 : 0)
-      )
-    }
-    style={{ margin: "0 4px" }}
-  >
-    −
-  </button>
-  <span>{resource.production}</span>
-  <button
-    onClick={() =>
-      updateProduction(
-        Math.min(resource.production + 1, resource.isMegaCredit ? 30 : 20)
-      )
-    }
-    style={{ margin: "0 4px" }}
-  >
-    ＋
-  </button>
-</div>
 
+      {/* − 入力 ＋ の並び */}
+      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: 8 }}>
+        <button onClick={subtractAmount} style={buttonStyle}>−</button>
+        <input
+          type="number"
+          value={delta === 0 ? "" : delta}
+          onChange={e => {
+            const val = e.target.value;
+            setDelta(val === "" ? 0 : Number(val));
+          }}
+          style={{ width: "60px", textAlign: "center" }}
+        />
+        <button onClick={addAmount} style={buttonStyle}>＋</button>
+      </div>
+
+      {/* 生産: − x ＋ */}
+      <div>
+        <span>生産: </span>
+        <button
+          onClick={() =>
+            updateProduction(
+              Math.max(resource.production - 1, resource.isMegaCredit ? -10 : 0)
+            )
+          }
+          style={{ ...buttonStyle, marginRight: 4 }}
+        >
+          −
+        </button>
+        <span>{resource.production}</span>
+        <button
+          onClick={() =>
+            updateProduction(
+              Math.min(resource.production + 1, resource.isMegaCredit ? 30 : 20)
+            )
+          }
+          style={{ ...buttonStyle, marginLeft: 4 }}
+        >
+          ＋
+        </button>
       </div>
     </div>
   );
