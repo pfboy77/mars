@@ -30,16 +30,31 @@ const ResourceCard: React.FC<Props> = ({
       <button onClick={addAmount}>＋</button>
       <button onClick={subtractAmount}>−</button>
       <div>
-        <label>
-          生産: {resource.production}
-          <input
-            type="range"
-            min={resource.isMegaCredit ? -10 : 0}
-            max={resource.isMegaCredit ? 30 : 20}
-            value={resource.production}
-            onChange={e => updateProduction(Number(e.target.value))}
-          />
-        </label>
+      <div style={{ marginTop: 8 }}>
+  <span>生産: </span>
+  <button
+    onClick={() =>
+      updateProduction(
+        Math.max(resource.production - 1, resource.isMegaCredit ? -10 : 0)
+      )
+    }
+    style={{ margin: "0 4px" }}
+  >
+    −
+  </button>
+  <span>{resource.production}</span>
+  <button
+    onClick={() =>
+      updateProduction(
+        Math.min(resource.production + 1, resource.isMegaCredit ? 30 : 20)
+      )
+    }
+    style={{ margin: "0 4px" }}
+  >
+    ＋
+  </button>
+</div>
+
       </div>
     </div>
   );

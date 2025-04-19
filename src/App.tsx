@@ -90,23 +90,50 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <div>
+    <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <button onClick={handleUndo} disabled={undoStack.length === 0}>↩︎ アンドゥ</button>
         <button onClick={handleRedo} disabled={redoStack.length === 0}>↪︎ リドゥ</button>
-        <span style={{ marginLeft: 20 }}>TR: {tr}</span>
-        <input
-          type="range"
-          value={tr}
-          min={0}
-          max={100}
-          onChange={e => setTr(Number(e.target.value))}
-        />
-        <button onClick={handleProduction} style={{ marginLeft: 10 }}>▶︎ 生産</button>
-        <button onClick={handleReset} style={{ marginLeft: 10, backgroundColor: "red", color: "white" }}>リセット</button>
+
+        <div style={{ display: "inline-flex", alignItems: "center", marginLeft: 8 }}>
+          <span>TR:</span>
+          <button
+            onClick={() => setTr(prev => Math.max(prev - 1, 0))}
+            style={{ margin: "0 8px" }}
+          >−</button>
+          <span>{tr}</span>
+          <button
+            onClick={() => setTr(prev => Math.min(prev + 1, 100))}
+            style={{ margin: "0 8px" }}
+          >＋</button>
+        </div>
+
+        <button onClick={handleProduction} style={{ backgroundColor: "#007bff", color: "white", padding: "4px 8px", borderRadius: 4 }}>
+          ▶︎ 生産
+        </button>
+        <button onClick={handleReset} style={{ backgroundColor: "red", color: "white", padding: "4px 8px", borderRadius: 4 }}>
+          リセット
+        </button>
       </div>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 16 }}>
+
+      {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 8,
+          marginTop: 16,
+        }}
+      >
         {resources.map(resource => (
           <ResourceCard
             key={resource.id}
