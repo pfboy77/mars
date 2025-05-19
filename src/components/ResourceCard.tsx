@@ -50,7 +50,7 @@ const ResourceCard: React.FC<Props> = ({
             const val = e.target.value;
             setDelta(val === "" ? 0 : Number(val));
           }}
-          style={{ width: "60px", textAlign: "center" }}
+          style={{ width: "60px", textAlign: "center", fontSize: "16px" }}
         />
         <button onClick={addAmount} style={buttonStyle}>＋</button>
       </div>
