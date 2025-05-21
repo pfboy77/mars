@@ -24,7 +24,7 @@ const ResourceCard: React.FC<Props> = ({
   setDelta,
   addAmount,
   subtractAmount,
-  updateProduction
+  updateProduction,
 }) => {
   return (
     <div
@@ -35,24 +35,37 @@ const ResourceCard: React.FC<Props> = ({
         minHeight: 120,
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
       }}
     >
-      <h4>{resource.name}: {resource.amount}</h4>
+      <h4>
+        {resource.name}: {resource.amount}
+      </h4>
 
       {/* − 入力 ＋ の並び */}
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: 8 }}>
-        <button onClick={subtractAmount} style={buttonStyle}>−</button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          marginBottom: 8,
+        }}
+      >
+        <button onClick={subtractAmount} style={buttonStyle}>
+          −
+        </button>
         <input
           type="number"
           value={delta === 0 ? "" : delta}
-          onChange={e => {
+          onChange={(e) => {
             const val = e.target.value;
             setDelta(val === "" ? 0 : Number(val));
           }}
           style={{ width: "60px", textAlign: "center", fontSize: "16px" }}
         />
-        <button onClick={addAmount} style={buttonStyle}>＋</button>
+        <button onClick={addAmount} style={buttonStyle}>
+          ＋
+        </button>
       </div>
 
       {/* 生産: − x ＋ */}
@@ -61,7 +74,7 @@ const ResourceCard: React.FC<Props> = ({
         <button
           onClick={() =>
             updateProduction(
-              Math.max(resource.production - 1, resource.isMegaCredit ? -10 : 0)
+              Math.max(resource.production - 1, resource.isMegaCredit ? -5 : 0)
             )
           }
           style={{ ...buttonStyle, marginRight: 4 }}
@@ -71,9 +84,7 @@ const ResourceCard: React.FC<Props> = ({
         <span>{resource.production}</span>
         <button
           onClick={() =>
-            updateProduction(
-              Math.min(resource.production + 1, resource.isMegaCredit ? 30 : 20)
-            )
+            updateProduction(Math.min(resource.production + 1, 100))
           }
           style={{ ...buttonStyle, marginLeft: 4 }}
         >

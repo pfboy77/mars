@@ -24,10 +24,30 @@ const MonitorView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // 2x2レイアウト（最大4人）のスタイル設定
+  const gridStyle =
+    players.length <= 4
+      ? {
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 24,
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: 16,
+        }
+      : {
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 24,
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: 16,
+        };
+
   return (
     <div style={{ padding: 16, maxWidth: 1200, margin: "0 auto" }}>
       <h2 style={{ textAlign: "center", marginBottom: 16 }}>
-        プレイヤー状態モニター
+        モニター
       </h2>
 
       <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -35,20 +55,11 @@ const MonitorView: React.FC = () => {
           onClick={() => navigate("/")}
           style={{ padding: "8px 16px", fontSize: "16px" }}
         >
-          ホームに戻る
+          ホーム
         </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 24,
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: 16,
-        }}
-      >
+      <div style={gridStyle}>
         {players.map((player) => (
           <div
             key={player.id}
@@ -93,17 +104,30 @@ const MonitorView: React.FC = () => {
                     border: "1px solid #ddd",
                     borderRadius: 4,
                     padding: 8,
-                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    fontSize: 16,
                   }}
                 >
-                  <div>
-                    <strong>{resource.name}</strong> : {resource.amount}
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <strong>{resource.name}</strong>
+                    <span style={{ fontWeight: "bold" }}>
+                      {resource.amount}
+                    </span>
                   </div>
-                  <div>
-                    産出量 :{" "}
-                    {resource.production < 0
-                      ? resource.production
-                      : `${resource.production}`}
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>産出量</span>
+                    <span style={{ fontWeight: "bold" }}>
+                      {Math.max(
+                        resource.production,
+                        resource.isMegaCredit ? -5 : 0
+                      )}
+                    </span>
                   </div>
                 </div>
               ))}

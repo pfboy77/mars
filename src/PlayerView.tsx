@@ -157,95 +157,93 @@ function PlayerView() {
       {players.length > 0 && currentPlayer && (
         <>
           <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <button onClick={handleUndo} disabled={undoStack.length === 0}>
-                ↩︎ Undo
-              </button>
-              <button onClick={handleRedo} disabled={redoStack.length === 0}>
-                ↪︎ Redo
-              </button>
-            </div>
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "bold",
-                textAlign: "center",
-                flex: 1,
-              }}
-            >
-              {currentPlayer.name}
-            </div>
-            <div style={{ display: "inline-flex", alignItems: "center" }}>
-              <span>TR:</span>
-              <button
-                onClick={() =>
-                  updateCurrentPlayer((p) => ({
-                    ...p,
-                    tr: Math.max(p.tr - 1, 0),
-                  }))
-                }
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  fontSize: "16px",
-                  marginLeft: 4,
-                }}
-              >
-                −
-              </button>
-              <span style={{ margin: "0 8px" }}>{currentPlayer.tr}</span>
-              <button
-                onClick={() =>
-                  updateCurrentPlayer((p) => ({
-                    ...p,
-                    tr: Math.min(p.tr + 1, 100),
-                  }))
-                }
-                style={{ width: "32px", height: "32px", fontSize: "16px" }}
-              >
-                ＋
-              </button>
-              <button
-                onClick={handleProduction}
-                style={{
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  marginLeft: 8,
-                }}
-              >
-                ▶︎ 産出
-              </button>
-              <button
-                onClick={handleReset}
-                style={{
-                  backgroundColor: "red",
-                  color: "white",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  marginLeft: 4,
-                }}
-              >
-                リセット
-              </button>
-            </div>
-          </div>
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <button
-              onClick={() => navigate("/")}
-              style={{ padding: "8px 16px", fontSize: "16px" }}
-            >
-              ホームに戻る
-            </button>
-          </div>
+  style={{
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  }}
+>
+  <button onClick={handleUndo} disabled={undoStack.length === 0}>
+    ↩︎
+  </button>
+  <button onClick={handleRedo} disabled={redoStack.length === 0}>
+    ↪︎
+  </button>
+
+  <span
+    style={{
+      fontWeight: "bold",
+      fontSize: "14px",
+      padding: "4px 8px",
+      minWidth: "80px",
+      textAlign: "center",
+    }}
+  >
+    {currentPlayer.name}
+  </span>
+
+  <button
+    onClick={() => navigate("/")}
+    style={{ padding: "4px 12px", fontSize: "14px" }}
+  >
+    ホーム
+  </button>
+
+  <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span>TR:</span>
+    <button
+      onClick={() =>
+        updateCurrentPlayer((p) => ({
+          ...p,
+          tr: Math.max(p.tr - 1, 0),
+        }))
+      }
+      style={{ width: "32px", height: "32px", fontSize: "16px" }}
+    >
+      −
+    </button>
+    <span style={{ margin: "0 4px" }}>{currentPlayer.tr}</span>
+    <button
+      onClick={() =>
+        updateCurrentPlayer((p) => ({
+          ...p,
+          tr: Math.min(p.tr + 1, 100),
+        }))
+      }
+      style={{ width: "32px", height: "32px", fontSize: "16px" }}
+    >
+      ＋
+    </button>
+  </div>
+
+  <button
+    onClick={handleProduction}
+    style={{
+      backgroundColor: "#007bff",
+      color: "white",
+      padding: "4px 8px",
+      borderRadius: 4,
+    }}
+  >
+    ▶︎ 産出
+  </button>
+
+  <button
+    onClick={handleReset}
+    style={{
+      backgroundColor: "red",
+      color: "white",
+      padding: "4px 8px",
+      borderRadius: 4,
+    }}
+  >
+    リセット
+  </button>
+</div>
+
 
           {error && (
             <div style={{ color: "red", marginBottom: 8 }}>{error}</div>
@@ -272,9 +270,15 @@ function PlayerView() {
                 updateProduction={(val) =>
                   updateCurrentPlayer((player) => ({
                     ...player,
-                    resources: player.resources.map((r) =>
-                      r.id === resource.id ? { ...r, production: val } : r
-                    ),
+                    resources: player.resources.map((r) => {
+                      if (r.id === resource.id) {
+                        const min = r.isMegaCredit ? -5 : 0;
+                        const max = 100;
+                        const clampedVal = Math.max(min, Math.min(val, max));
+                        return { ...r, production: clampedVal };
+                      }
+                      return r;
+                    }),
                   }))
                 }
               />

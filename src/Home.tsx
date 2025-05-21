@@ -11,7 +11,7 @@ const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "チタン", amount: 0, production: 0 },
   { id: uuidv4(), name: "植物", amount: 0, production: 0 },
   { id: uuidv4(), name: "電力", amount: 0, production: 0, isEnergy: true },
-  { id: uuidv4(), name: "発熱", amount: 0, production: 0, isHeat: true }
+  { id: uuidv4(), name: "発熱", amount: 0, production: 0, isHeat: true },
 ];
 
 function Home() {
@@ -43,13 +43,14 @@ function Home() {
         await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ players, currentPlayerId })
+          body: JSON.stringify({ players, currentPlayerId }),
         });
       } catch (err) {
         console.error("状態の保存に失敗しました", err);
       }
     };
-    if (players.length > 0) saveState();
+
+    saveState(); // ← 常に保存
   }, [players, currentPlayerId]);
 
   const handleAddPlayer = () => {
@@ -58,9 +59,9 @@ function Home() {
       id: uuidv4(),
       name: newPlayerName.trim(),
       tr: 20,
-      resources: initialResources()
+      resources: initialResources(),
     };
-    setPlayers(prev => [...prev, newPlayer]);
+    setPlayers((prev) => [...prev, newPlayer]);
     setCurrentPlayerId(newPlayer.id);
     setNewPlayerName("");
   };
@@ -70,7 +71,7 @@ function Home() {
   };
 
   const handleDeletePlayer = (id: string) => {
-    const updated = players.filter(p => p.id !== id);
+    const updated = players.filter((p) => p.id !== id);
     setPlayers(updated);
     if (currentPlayerId === id) {
       setCurrentPlayerId(updated[0]?.id || null);
@@ -97,9 +98,19 @@ function Home() {
           placeholder="プレイヤー名を入力"
           value={newPlayerName}
           onChange={(e) => setNewPlayerName(e.target.value)}
-          style={{ padding: "8px", fontSize: "16px", width: "200px", marginRight: "8px" }}
+          style={{
+            padding: "8px",
+            fontSize: "16px",
+            width: "200px",
+            marginRight: "8px",
+          }}
         />
-        <button onClick={handleAddPlayer} style={{ padding: "8px 16px", fontSize: "16px" }}>追加</button>
+        <button
+          onClick={handleAddPlayer}
+          style={{ padding: "8px 16px", fontSize: "16px" }}
+        >
+          追加
+        </button>
       </div>
 
       {players.length > 0 && (
@@ -107,36 +118,68 @@ function Home() {
           <h3>プレイヤーを選択:</h3>
           <select
             value={currentPlayerId || ""}
-            onChange={e => handleSelectPlayer(e.target.value)}
+            onChange={(e) => handleSelectPlayer(e.target.value)}
             style={{ padding: "8px", fontSize: "16px" }}
           >
-            <option value="" disabled>選択してください</option>
-            {players.map(player => (
-              <option key={player.id} value={player.id}>{player.name}</option>
+            <option value="" disabled>
+              選択してください
+            </option>
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>
+                {player.name}
+              </option>
             ))}
           </select>
 
           <div style={{ marginTop: 16 }}>
-            {players.map(player => (
+            {players.map((player) => (
               <div key={player.id} style={{ marginBottom: 8 }}>
                 <span>{player.name}</span>
-                <button onClick={() => handleDeletePlayer(player.id)} style={{ marginLeft: 8 }}>削除</button>
+                <button
+                  onClick={() => handleDeletePlayer(player.id)}
+                  style={{ marginLeft: 8 }}
+                >
+                  削除
+                </button>
               </div>
             ))}
           </div>
 
-          <button onClick={handleResetAll} style={{ marginTop: 16, backgroundColor: "red", color: "white", padding: "8px 16px", borderRadius: 4 }}>
+          <button
+            onClick={handleResetAll}
+            style={{
+              marginTop: 16,
+              backgroundColor: "red",
+              color: "white",
+              padding: "8px 16px",
+              borderRadius: 4,
+            }}
+          >
             全てリセット（プレイヤー削除）
           </button>
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 32 }}>
-        <button onClick={goToPlayerView} disabled={!currentPlayerId} style={{ padding: "12px 24px", fontSize: "16px" }}>
-          プレイヤー操作画面へ
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 16,
+          marginTop: 32,
+        }}
+      >
+        <button
+          onClick={goToPlayerView}
+          disabled={!currentPlayerId}
+          style={{ padding: "12px 24px", fontSize: "16px" }}
+        >
+          プレイヤー
         </button>
-        <button onClick={() => navigate("/monitor")} style={{ padding: "12px 24px", fontSize: "16px" }}>
-          モニター画面へ
+        <button
+          onClick={() => navigate("/monitor")}
+          style={{ padding: "12px 24px", fontSize: "16px" }}
+        >
+          モニター
         </button>
       </div>
     </div>
