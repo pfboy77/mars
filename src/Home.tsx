@@ -50,7 +50,9 @@ function Home() {
       }
     };
 
-    saveState(); // ← 常に保存
+    if (players.length > 0) {
+      saveState(); // プレイヤーが1人以上いるときのみ保存
+    }
   }, [players, currentPlayerId]);
 
   const handleAddPlayer = () => {

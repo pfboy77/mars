@@ -25,6 +25,8 @@ function PlayerView() {
 
   const API_URL = "https://mars-api-server.onrender.com";
 
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
     const fetchState = async () => {
       try {
@@ -32,6 +34,7 @@ function PlayerView() {
         const data = await res.json();
         setPlayers(data.players || []);
         setCurrentPlayerId(data.currentPlayerId || null);
+        setInitialized(true); // データ読み込み完了フラグ
       } catch (err) {
         console.error("状態の取得に失敗しました", err);
       }
@@ -39,21 +42,24 @@ function PlayerView() {
     fetchState();
   }, []);
 
-  useEffect(() => {
-    const saveState = async () => {
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ players, currentPlayerId }),
-        });
-      } catch (err) {
-        console.error("状態の保存に失敗しました", err);
-      }
-    };
+useEffect(() => {
+  if (!initialized) return;
+  if (players.length === 0) return; // プレイヤーが0人ならPOSTしない
 
-    if (players.length > 0) saveState();
-  }, [players, currentPlayerId]);
+  const saveState = async () => {
+    try {
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ players, currentPlayerId }),
+      });
+    } catch (err) {
+      console.error("状態の保存に失敗しました", err);
+    }
+  };
+
+  saveState();
+}, [players, currentPlayerId, initialized]);
 
   useEffect(() => {
     localStorage.setItem("gameState", JSON.stringify({ players }));
@@ -157,93 +163,94 @@ function PlayerView() {
       {players.length > 0 && currentPlayer && (
         <>
           <div
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  }}
->
-  <button onClick={handleUndo} disabled={undoStack.length === 0}>
-    ↩︎
-  </button>
-  <button onClick={handleRedo} disabled={redoStack.length === 0}>
-    ↪︎
-  </button>
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <button onClick={handleUndo} disabled={undoStack.length === 0}>
+              ↩︎
+            </button>
+            <button onClick={handleRedo} disabled={redoStack.length === 0}>
+              ↪︎
+            </button>
 
-  <span
-    style={{
-      fontWeight: "bold",
-      fontSize: "14px",
-      padding: "4px 8px",
-      minWidth: "80px",
-      textAlign: "center",
-    }}
-  >
-    {currentPlayer.name}
-  </span>
+            <span
+              style={{
+                fontWeight: "bold",
+                fontSize: "14px",
+                padding: "4px 8px",
+                minWidth: "80px",
+                textAlign: "center",
+              }}
+            >
+              {currentPlayer.name}
+            </span>
 
-  <button
-    onClick={() => navigate("/")}
-    style={{ padding: "4px 12px", fontSize: "14px" }}
-  >
-    ホーム
-  </button>
+            <button
+              onClick={() => navigate("/")}
+              style={{ padding: "4px 12px", fontSize: "14px" }}
+            >
+              ホーム
+            </button>
 
-  <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-    <span>TR:</span>
-    <button
-      onClick={() =>
-        updateCurrentPlayer((p) => ({
-          ...p,
-          tr: Math.max(p.tr - 1, 0),
-        }))
-      }
-      style={{ width: "32px", height: "32px", fontSize: "16px" }}
-    >
-      −
-    </button>
-    <span style={{ margin: "0 4px" }}>{currentPlayer.tr}</span>
-    <button
-      onClick={() =>
-        updateCurrentPlayer((p) => ({
-          ...p,
-          tr: Math.min(p.tr + 1, 100),
-        }))
-      }
-      style={{ width: "32px", height: "32px", fontSize: "16px" }}
-    >
-      ＋
-    </button>
-  </div>
+            <div
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <span>TR:</span>
+              <button
+                onClick={() =>
+                  updateCurrentPlayer((p) => ({
+                    ...p,
+                    tr: Math.max(p.tr - 1, 0),
+                  }))
+                }
+                style={{ width: "32px", height: "32px", fontSize: "16px" }}
+              >
+                −
+              </button>
+              <span style={{ margin: "0 4px" }}>{currentPlayer.tr}</span>
+              <button
+                onClick={() =>
+                  updateCurrentPlayer((p) => ({
+                    ...p,
+                    tr: Math.min(p.tr + 1, 100),
+                  }))
+                }
+                style={{ width: "32px", height: "32px", fontSize: "16px" }}
+              >
+                ＋
+              </button>
+            </div>
 
-  <button
-    onClick={handleProduction}
-    style={{
-      backgroundColor: "#007bff",
-      color: "white",
-      padding: "4px 8px",
-      borderRadius: 4,
-    }}
-  >
-    ▶︎ 産出
-  </button>
+            <button
+              onClick={handleProduction}
+              style={{
+                backgroundColor: "#007bff",
+                color: "white",
+                padding: "4px 8px",
+                borderRadius: 4,
+              }}
+            >
+              ▶︎ 産出
+            </button>
 
-  <button
-    onClick={handleReset}
-    style={{
-      backgroundColor: "red",
-      color: "white",
-      padding: "4px 8px",
-      borderRadius: 4,
-    }}
-  >
-    リセット
-  </button>
-</div>
-
+            <button
+              onClick={handleReset}
+              style={{
+                backgroundColor: "red",
+                color: "white",
+                padding: "4px 8px",
+                borderRadius: 4,
+              }}
+            >
+              リセット
+            </button>
+          </div>
 
           {error && (
             <div style={{ color: "red", marginBottom: 8 }}>{error}</div>
