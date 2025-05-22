@@ -49,7 +49,6 @@ function Home() {
         console.error("状態の保存に失敗しました", err);
       }
     };
-
     if (players.length > 0) {
       saveState(); // プレイヤーが1人以上いるときのみ保存
     }
