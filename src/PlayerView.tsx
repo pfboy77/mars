@@ -25,7 +25,7 @@ function PlayerView() {
     typeof window !== "undefined" ? localStorage.getItem("roomId") : null;
   const roomId = urlRoomId || storedRoomId || "default";
 
-  // playerId: URL > localStorage(currentPlayerId_roomId) > 後で決める
+  // playerId: URL > localStorage(currentPlayerId_roomId)（後で確定させる）
   const urlPlayerId = searchParams.get("playerId");
   const storedPlayerId =
     typeof window !== "undefined"
@@ -37,27 +37,31 @@ function PlayerView() {
 
   const [deltaValues, setDeltaValues] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<Player[][]>([]);
   const [redoStack, setRedoStack] = useState<Player[][]>([]);
 
-  // roomId ごとの状態取得
+  // 状態取得
   useEffect(() => {
     const fetchState = async () => {
       try {
+        setGlobalError(null);
         const res = await fetch(
           `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
         );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         const serverPlayers: Player[] = data.players || [];
         setPlayers(serverPlayers);
 
-        // ★ ここで currentPlayerId を決定する
         if (serverPlayers.length === 0) {
           setCurrentPlayerId(null);
           return;
         }
 
-        // URL > localStorage > 先頭プレイヤー の優先順位で選択
+        // URL > localStorage > 先頭プレイヤー の優先度で currentPlayerId を決定
         const candidate =
           (urlPlayerId &&
             serverPlayers.some((p) => p.id === urlPlayerId) &&
@@ -68,31 +72,35 @@ function PlayerView() {
           serverPlayers[0].id;
 
         setCurrentPlayerId(candidate);
-      } catch (err) {
-        console.error("状態の取得に失敗しました", err);
+      } catch (e: any) {
+        console.error("状態の取得に失敗しました", e);
+        setGlobalError("プレイヤー情報の取得に失敗しました。ホームに戻ってやり直してください。");
       }
     };
+
     fetchState();
   }, [roomId, urlPlayerId, storedPlayerId]);
 
-  // roomId ごとの状態保存（players だけ）
+  // サーバー保存（players だけ）
   useEffect(() => {
     const saveState = async () => {
       try {
         await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId, players }), // ★ currentPlayerId は送らない
+          body: JSON.stringify({ roomId, players }),
         });
       } catch (err) {
         console.error("状態の保存に失敗しました", err);
       }
     };
 
-    if (players.length > 0) saveState();
+    if (players.length > 0) {
+      saveState();
+    }
   }, [players, roomId]);
 
-  // localStorage にも currentPlayerId を保存（人ごとの「最後に見てたプレイヤー」）
+  // currentPlayerId を localStorage に保存
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (currentPlayerId) {
@@ -102,7 +110,7 @@ function PlayerView() {
     }
   }, [currentPlayerId, roomId]);
 
-  // おまけ: room ごとの gameState 保存（無くても動く）
+  // おまけ: room ごとに gameState を保存
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(
@@ -111,7 +119,8 @@ function PlayerView() {
     );
   }, [players, currentPlayerId, roomId]);
 
-  const currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
+  const currentPlayer =
+    (currentPlayerId && players.find((p) => p.id === currentPlayerId)) || null;
 
   const saveStateForUndo = () => {
     setUndoStack((prev) => [
@@ -205,11 +214,23 @@ function PlayerView() {
     }
   };
 
-  // ここで「真っ白対策」：players があるのに currentPlayerId が決まってないときは簡易表示
-  if (players.length > 0 && !currentPlayer) {
+  // ===== ここから描画 =====
+
+  // グローバルエラー時（API失敗など）
+  if (globalError) {
     return (
       <div style={{ padding: 16 }}>
-        <p>プレイヤーの選択に失敗しました。Home から入り直してみてください。</p>
+        <p>{globalError}</p>
+        <button onClick={() => navigate("/")}>ホームへ戻る</button>
+      </div>
+    );
+  }
+
+  // プレイヤーが1人もいない / currentPlayer が決まってない
+  if (players.length === 0 || !currentPlayer) {
+    return (
+      <div style={{ padding: 16 }}>
+        <p>プレイヤーが見つかりません。ホームからプレイヤーを作成してください。</p>
         <button onClick={() => navigate("/")}>ホームへ戻る</button>
       </div>
     );
@@ -217,139 +238,148 @@ function PlayerView() {
 
   return (
     <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
-      {players.length > 0 && currentPlayer && (
-        <>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 16,
-            }}
+      {/* デバッグ用に roomId / playerId を常に表示しておく */}
+      <div
+        style={{
+          fontSize: 12,
+          color: "#666",
+          marginBottom: 8,
+          textAlign: "center",
+        }}
+      >
+        <div>
+          roomId: <code>{roomId}</code>
+        </div>
+        <div>
+          currentPlayerId: <code>{currentPlayerId}</code>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 16,
+        }}
+      >
+        <button onClick={handleUndo} disabled={undoStack.length === 0}>
+          ↩︎
+        </button>
+        <button onClick={handleRedo} disabled={redoStack.length === 0}>
+          ↪︎
+        </button>
+
+        <span
+          style={{
+            fontWeight: "bold",
+            fontSize: "14px",
+            padding: "4px 8px",
+            minWidth: "80px",
+            textAlign: "center",
+          }}
+        >
+          {currentPlayer.name}
+        </span>
+
+        <button
+          onClick={() => navigate("/")}
+          style={{ padding: "4px 12px", fontSize: "14px" }}
+        >
+          ホーム
+        </button>
+
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span>TR:</span>
+          <button
+            onClick={() =>
+              updateCurrentPlayer((p) => ({
+                ...p,
+                tr: Math.max(p.tr - 1, 0),
+              }))
+            }
+            style={{ width: "32px", height: "32px", fontSize: "16px" }}
           >
-            <button onClick={handleUndo} disabled={undoStack.length === 0}>
-              ↩︎
-            </button>
-            <button onClick={handleRedo} disabled={redoStack.length === 0}>
-              ↪︎
-            </button>
-
-            <span
-              style={{
-                fontWeight: "bold",
-                fontSize: "14px",
-                padding: "4px 8px",
-                minWidth: "80px",
-                textAlign: "center",
-              }}
-            >
-              {currentPlayer.name}
-            </span>
-
-            <button
-              onClick={() => navigate("/")}
-              style={{ padding: "4px 12px", fontSize: "14px" }}
-            >
-              ホーム
-            </button>
-
-            <div
-              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              <span>TR:</span>
-              <button
-                onClick={() =>
-                  updateCurrentPlayer((p) => ({
-                    ...p,
-                    tr: Math.max(p.tr - 1, 0),
-                  }))
-                }
-                style={{ width: "32px", height: "32px", fontSize: "16px" }}
-              >
-                −
-              </button>
-              <span style={{ margin: "0 4px" }}>{currentPlayer.tr}</span>
-              <button
-                onClick={() =>
-                  updateCurrentPlayer((p) => ({
-                    ...p,
-                    tr: Math.min(p.tr + 1, 100),
-                  }))
-                }
-                style={{ width: "32px", height: "32px", fontSize: "16px" }}
-              >
-                ＋
-              </button>
-            </div>
-
-            <button
-              onClick={handleProduction}
-              style={{
-                backgroundColor: "#007bff",
-                color: "white",
-                padding: "4px 8px",
-                borderRadius: 4,
-              }}
-            >
-              ▶︎ 産出
-            </button>
-
-            <button
-              onClick={handleReset}
-              style={{
-                backgroundColor: "red",
-                color: "white",
-                padding: "4px 8px",
-                borderRadius: 4,
-              }}
-            >
-              リセット
-            </button>
-          </div>
-
-          {error && (
-            <div style={{ color: "red", marginBottom: 8 }}>{error}</div>
-          )}
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 8,
-              marginTop: 16,
-            }}
+            −
+          </button>
+          <span style={{ margin: "0 4px" }}>{currentPlayer.tr}</span>
+          <button
+            onClick={() =>
+              updateCurrentPlayer((p) => ({
+                ...p,
+                tr: Math.min(p.tr + 1, 100),
+              }))
+            }
+            style={{ width: "32px", height: "32px", fontSize: "16px" }}
           >
-            {currentPlayer.resources.map((resource) => (
-              <ResourceCard
-                key={resource.id}
-                resource={resource}
-                delta={deltaValues[resource.id] || 0}
-                setDelta={(val) =>
-                  setDeltaValues({ ...deltaValues, [resource.id]: val })
-                }
-                addAmount={() => handleAdd(resource.id)}
-                subtractAmount={() => handleSubtract(resource.id)}
-                updateProduction={(val) =>
-                  updateCurrentPlayer((player) => ({
-                    ...player,
-                    resources: player.resources.map((r) => {
-                      if (r.id === resource.id) {
-                        const min = r.isMegaCredit ? -5 : 0;
-                        const max = 100;
-                        const clampedVal = Math.max(min, Math.min(val, max));
-                        return { ...r, production: clampedVal };
-                      }
-                      return r;
-                    }),
-                  }))
-                }
-              />
-            ))}
-          </div>
-        </>
-      )}
+            ＋
+          </button>
+        </div>
+
+        <button
+          onClick={handleProduction}
+          style={{
+            backgroundColor: "#007bff",
+            color: "white",
+            padding: "4px 8px",
+            borderRadius: 4,
+          }}
+        >
+          ▶︎ 産出
+        </button>
+
+        <button
+          onClick={handleReset}
+          style={{
+            backgroundColor: "red",
+            color: "white",
+            padding: "4px 8px",
+            borderRadius: 4,
+          }}
+        >
+          リセット
+        </button>
+      </div>
+
+      {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 8,
+          marginTop: 16,
+        }}
+      >
+        {currentPlayer.resources.map((resource) => (
+          <ResourceCard
+            key={resource.id}
+            resource={resource}
+            delta={deltaValues[resource.id] || 0}
+            setDelta={(val) =>
+              setDeltaValues({ ...deltaValues, [resource.id]: val })
+            }
+            addAmount={() => handleAdd(resource.id)}
+            subtractAmount={() => handleSubtract(resource.id)}
+            updateProduction={(val) =>
+              updateCurrentPlayer((player) => ({
+                ...player,
+                resources: player.resources.map((r) => {
+                  if (r.id === resource.id) {
+                    const min = r.isMegaCredit ? -5 : 0;
+                    const max = 100;
+                    const clampedVal = Math.max(min, Math.min(val, max));
+                    return { ...r, production: clampedVal };
+                  }
+                  return r;
+                }),
+              }))
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
