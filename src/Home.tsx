@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { Player, Resource } from "./types";
 
-const API_URL = "https://mars-api-server.onrender.com"; // ここをあなたのURLに置き換えてください
+const API_URL = "https://mars-api-server.onrender.com"; // ここはそのまま
 
 const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "MC", amount: 0, production: 0, isMegaCredit: true },
@@ -17,15 +17,20 @@ const initialResources = (): Resource[] => [
 function Home() {
   const navigate = useNavigate();
 
+  // ★ 追加：roomId 状態
+  const [roomId, setRoomId] = useState<string>("default");
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState<string>("");
 
-  // データの取得
+  // ★ roomId ごとのデータ取得
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(
+          `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
+        );
         const data = await res.json();
         setPlayers(data.players || []);
         setCurrentPlayerId(data.currentPlayerId || null);
@@ -34,25 +39,25 @@ function Home() {
       }
     };
     fetchState();
-  }, []);
+  }, [roomId]); // ← roomId が変わったらその部屋の状態を読む
 
-  // データの保存
+  // ★ roomId ごとのデータ保存
   useEffect(() => {
     const saveState = async () => {
       try {
-        await fetch(API_URL, {
+        await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ players, currentPlayerId }),
+          body: JSON.stringify({ roomId, players, currentPlayerId }),
         });
       } catch (err) {
         console.error("状態の保存に失敗しました", err);
       }
     };
-    if (players.length > 0) {
-      saveState(); // プレイヤーが1人以上いるときのみ保存
-    }
-  }, [players, currentPlayerId]);
+
+    // players / currentPlayerId が変わるたび、その roomId の state を保存
+    saveState();
+  }, [players, currentPlayerId, roomId]);
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return;
@@ -85,13 +90,37 @@ function Home() {
   };
 
   const goToPlayerView = () => {
-    if (currentPlayerId) navigate("/play");
+    if (currentPlayerId) {
+      // ★ roomId をクエリで渡す
+      navigate(`/play?roomId=${encodeURIComponent(roomId)}`);
+    }
   };
 
   return (
     <div style={{ padding: 32, textAlign: "center" }}>
       <h1>Terraforming Resource Manager</h1>
       <p>プレイヤーの状態を管理したり、全体をモニターできます。</p>
+
+      {/* ★ 追加：roomId 入力欄 */}
+      <div style={{ marginTop: 16 }}>
+        <label>
+          Room ID:
+          <input
+            type="text"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            style={{
+              marginLeft: 8,
+              padding: "4px 8px",
+              fontSize: 14,
+              width: 200,
+            }}
+          />
+        </label>
+        <p style={{ fontSize: 12, color: "#666" }}>
+          同じ Room ID を使う人同士で状態が共有されます。
+        </p>
+      </div>
 
       <div style={{ marginTop: 24 }}>
         <input
@@ -177,7 +206,9 @@ function Home() {
           プレイヤー
         </button>
         <button
-          onClick={() => navigate("/monitor")}
+          onClick={() =>
+            navigate(`/monitor?roomId=${encodeURIComponent(roomId)}`)
+          }
           style={{ padding: "12px 24px", fontSize: "16px" }}
         >
           モニター

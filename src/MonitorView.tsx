@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Player } from "./types";
 
 const API_URL = "https://mars-api-server.onrender.com";
@@ -8,10 +8,16 @@ const MonitorView: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const navigate = useNavigate();
 
+  // ★ URL から roomId を取得（なければ default）
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId") ?? "default";
+
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(
+          `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
+        );
         const data = await res.json();
         setPlayers(data.players || []);
       } catch (err) {
@@ -22,7 +28,7 @@ const MonitorView: React.FC = () => {
     fetchPlayers();
     const interval = setInterval(fetchPlayers, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [roomId]); // ★ roomId が変わったら監視対象を切り替える
 
   // 2x2レイアウト（最大4人）のスタイル設定
   const gridStyle =
@@ -46,9 +52,7 @@ const MonitorView: React.FC = () => {
 
   return (
     <div style={{ padding: 16, maxWidth: 1200, margin: "0 auto" }}>
-      <h2 style={{ textAlign: "center", marginBottom: 16 }}>
-        モニター
-      </h2>
+      <h2 style={{ textAlign: "center", marginBottom: 16 }}>モニター</h2>
 
       <div style={{ textAlign: "center", marginBottom: 16 }}>
         <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import ResourceCard from "./components/ResourceCard";
 import { Resource, Player } from "./types";
@@ -15,6 +15,10 @@ const initialResources = (): Resource[] => [
 
 function PlayerView() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // ★ URL から roomId を取得（なければ default）
+  const roomId = searchParams.get("roomId") ?? "default";
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
@@ -25,49 +29,51 @@ function PlayerView() {
 
   const API_URL = "https://mars-api-server.onrender.com";
 
-  const [initialized, setInitialized] = useState(false);
-
+  // ★ roomId ごとの状態取得
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(
+          `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
+        );
         const data = await res.json();
         setPlayers(data.players || []);
         setCurrentPlayerId(data.currentPlayerId || null);
-        setInitialized(true); // データ読み込み完了フラグ
       } catch (err) {
         console.error("状態の取得に失敗しました", err);
       }
     };
     fetchState();
-  }, []);
+  }, [roomId]);
 
-useEffect(() => {
-  if (!initialized) return;
-  if (players.length === 0) return; // プレイヤーが0人ならPOSTしない
-
-  const saveState = async () => {
-    try {
-      await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ players, currentPlayerId }),
-      });
-    } catch (err) {
-      console.error("状態の保存に失敗しました", err);
-    }
-  };
-
-  saveState();
-}, [players, currentPlayerId, initialized]);
-
+  // ★ roomId ごとの状態保存
   useEffect(() => {
-    localStorage.setItem("gameState", JSON.stringify({ players }));
-  }, [players]);
+    const saveState = async () => {
+      try {
+        await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomId, players, currentPlayerId }),
+        });
+      } catch (err) {
+        console.error("状態の保存に失敗しました", err);
+      }
+    };
+
+    if (players.length > 0) saveState();
+  }, [players, currentPlayerId, roomId]);
+
+  // ★ localStorage も room ごとに分ける（おまけ）
+  useEffect(() => {
+    localStorage.setItem(
+      `gameState_${roomId}`,
+      JSON.stringify({ players, currentPlayerId })
+    );
+  }, [players, currentPlayerId, roomId]);
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
 
-  const saveState = () => {
+  const saveStateForUndo = () => {
     setUndoStack((prev) => [
       ...prev,
       players.map((p) => ({ ...p, resources: [...p.resources] })),
@@ -76,7 +82,7 @@ useEffect(() => {
   };
 
   const updateCurrentPlayer = (updater: (player: Player) => Player) => {
-    saveState();
+    saveStateForUndo();
     setPlayers((prev) =>
       prev.map((p) => (p.id === currentPlayerId ? updater(p) : p))
     );
