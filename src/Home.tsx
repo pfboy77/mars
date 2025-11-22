@@ -17,14 +17,12 @@ const initialResources = (): Resource[] => [
 function Home() {
   const navigate = useNavigate();
 
-  // ★ ブラウザごとの roomId
   const [roomId, setRoomId] = useState<string>("");
-
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState<string>("");
 
-  // ★ 初回だけ roomId を決定（localStorage を見て、なければ作る）
+  // 初回だけ roomId を決める（localStorage に保存）
   useEffect(() => {
     const stored = localStorage.getItem("roomId");
     if (stored) {
@@ -36,7 +34,7 @@ function Home() {
     }
   }, []);
 
-  // ★ roomId が決まったら、その部屋の状態をサーバーから取得
+  // roomId が決まったら、その部屋の状態を取得
   useEffect(() => {
     if (!roomId) return;
 
@@ -47,15 +45,27 @@ function Home() {
         );
         const data = await res.json();
         setPlayers(data.players || []);
-        setCurrentPlayerId(data.currentPlayerId || null);
+
+        // currentPlayerId はローカルで持つ
+        const storedCurrent = localStorage.getItem(
+          `currentPlayerId_${roomId}`
+        );
+        if (storedCurrent && data.players?.some((p: Player) => p.id === storedCurrent)) {
+          setCurrentPlayerId(storedCurrent);
+        } else if (data.players && data.players.length > 0) {
+          setCurrentPlayerId(data.players[0].id);
+        } else {
+          setCurrentPlayerId(null);
+        }
       } catch (err) {
         console.error("状態の取得に失敗しました", err);
       }
     };
+
     fetchState();
   }, [roomId]);
 
-  // ★ players/currentPlayerId が変わるたびに、その room の状態を保存
+  // players が変わったらサーバーに保存
   useEffect(() => {
     if (!roomId) return;
 
@@ -64,18 +74,27 @@ function Home() {
         await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId, players, currentPlayerId }),
+          body: JSON.stringify({ roomId, players }),
         });
       } catch (err) {
         console.error("状態の保存に失敗しました", err);
       }
     };
 
-    // プレイヤーが1人以上いるときだけ保存（空の部屋で無限POSTしない）
     if (players.length > 0) {
       saveState();
     }
-  }, [players, currentPlayerId, roomId]);
+  }, [players, roomId]);
+
+  // currentPlayerId を localStorage にも保持
+  useEffect(() => {
+    if (!roomId) return;
+    if (currentPlayerId) {
+      localStorage.setItem(`currentPlayerId_${roomId}`, currentPlayerId);
+    } else {
+      localStorage.removeItem(`currentPlayerId_${roomId}`);
+    }
+  }, [currentPlayerId, roomId]);
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return;
@@ -109,17 +128,22 @@ function Home() {
 
   const goToPlayerView = () => {
     if (currentPlayerId) {
-      // ★ roomId をクエリに付ける
-      navigate(`/play?roomId=${encodeURIComponent(roomId)}`);
+      navigate(`/play?roomId=${encodeURIComponent(roomId)}&playerId=${currentPlayerId}`);
     }
   };
+
+  const goToMonitorView = () => {
+    navigate(`/monitor?roomId=${encodeURIComponent(roomId)}`);
+  };
+
+  const appOrigin =
+    typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div style={{ padding: 32, textAlign: "center" }}>
       <h1>Terraforming Resource Manager</h1>
       <p>プレイヤーの状態を管理したり、全体をモニターできます。</p>
 
-      {/* roomId は一応表示だけ（共有したいとき用） */}
       {roomId && (
         <p style={{ fontSize: 12, color: "#666" }}>
           Room ID: <code>{roomId}</code>
@@ -166,17 +190,55 @@ function Home() {
           </select>
 
           <div style={{ marginTop: 16 }}>
-            {players.map((player) => (
-              <div key={player.id} style={{ marginBottom: 8 }}>
-                <span>{player.name}</span>
-                <button
-                  onClick={() => handleDeletePlayer(player.id)}
-                  style={{ marginLeft: 8 }}
+            {players.map((player) => {
+              const playerUrl = `${appOrigin}/play?roomId=${encodeURIComponent(
+                roomId
+              )}&playerId=${player.id}`;
+              const monitorUrl = `${appOrigin}/monitor?roomId=${encodeURIComponent(
+                roomId
+              )}`;
+
+              return (
+                <div
+                  key={player.id}
+                  style={{
+                    marginBottom: 12,
+                    borderBottom: "1px solid #ddd",
+                    paddingBottom: 8,
+                  }}
                 >
-                  削除
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <span>{player.name}</span>
+                    <button
+                      onClick={() => handleDeletePlayer(player.id)}
+                      style={{ marginLeft: 8 }}
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 4, textAlign: "left" }}>
+                    <div>
+                      プレイヤーURL:{" "}
+                      <input
+                        type="text"
+                        readOnly
+                        value={playerUrl}
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      モニターURL:{" "}
+                      <input
+                        type="text"
+                        readOnly
+                        value={monitorUrl}
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <button
@@ -210,9 +272,7 @@ function Home() {
           プレイヤー
         </button>
         <button
-          onClick={() =>
-            navigate(`/monitor?roomId=${encodeURIComponent(roomId)}`)
-          }
+          onClick={goToMonitorView}
           style={{ padding: "12px 24px", fontSize: "16px" }}
         >
           モニター

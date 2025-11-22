@@ -51,21 +51,22 @@ function PlayerView() {
   }, [roomId]);
 
   // roomId ごとの状態保存
-  useEffect(() => {
-    const saveState = async () => {
-      try {
-        await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId, players, currentPlayerId }),
-        });
-      } catch (err) {
-        console.error("状態の保存に失敗しました", err);
-      }
-    };
+useEffect(() => {
+  const saveState = async () => {
+    try {
+      await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, players }), // ★ currentPlayerId を送らない
+      });
+    } catch (err) {
+      console.error("状態の保存に失敗しました", err);
+    }
+  };
 
     if (players.length > 0) saveState();
-  }, [players, currentPlayerId, roomId]);
+  }, [players, roomId]); // ★ 依存からも currentPlayerId を外す
+
 
   // localStorage も room ごとに分ける（おまけ）
   useEffect(() => {
