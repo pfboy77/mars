@@ -19,11 +19,18 @@ function PlayerView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // URL > localStorage > default の優先順位で roomId を決定
+  // roomId: URL > localStorage > default
   const urlRoomId = searchParams.get("roomId");
   const storedRoomId =
     typeof window !== "undefined" ? localStorage.getItem("roomId") : null;
   const roomId = urlRoomId || storedRoomId || "default";
+
+  // playerId: URL > localStorage(currentPlayerId_roomId) > 後で決める
+  const urlPlayerId = searchParams.get("playerId");
+  const storedPlayerId =
+    typeof window !== "undefined"
+      ? localStorage.getItem(`currentPlayerId_${roomId}`)
+      : null;
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -41,34 +48,61 @@ function PlayerView() {
           `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
         );
         const data = await res.json();
-        setPlayers(data.players || []);
-        setCurrentPlayerId(data.currentPlayerId || null);
+        const serverPlayers: Player[] = data.players || [];
+        setPlayers(serverPlayers);
+
+        // ★ ここで currentPlayerId を決定する
+        if (serverPlayers.length === 0) {
+          setCurrentPlayerId(null);
+          return;
+        }
+
+        // URL > localStorage > 先頭プレイヤー の優先順位で選択
+        const candidate =
+          (urlPlayerId &&
+            serverPlayers.some((p) => p.id === urlPlayerId) &&
+            urlPlayerId) ||
+          (storedPlayerId &&
+            serverPlayers.some((p) => p.id === storedPlayerId) &&
+            storedPlayerId) ||
+          serverPlayers[0].id;
+
+        setCurrentPlayerId(candidate);
       } catch (err) {
         console.error("状態の取得に失敗しました", err);
       }
     };
     fetchState();
-  }, [roomId]);
+  }, [roomId, urlPlayerId, storedPlayerId]);
 
-  // roomId ごとの状態保存
-useEffect(() => {
-  const saveState = async () => {
-    try {
-      await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId, players }), // ★ currentPlayerId を送らない
-      });
-    } catch (err) {
-      console.error("状態の保存に失敗しました", err);
-    }
-  };
+  // roomId ごとの状態保存（players だけ）
+  useEffect(() => {
+    const saveState = async () => {
+      try {
+        await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomId, players }), // ★ currentPlayerId は送らない
+        });
+      } catch (err) {
+        console.error("状態の保存に失敗しました", err);
+      }
+    };
 
     if (players.length > 0) saveState();
-  }, [players, roomId]); // ★ 依存からも currentPlayerId を外す
+  }, [players, roomId]);
 
+  // localStorage にも currentPlayerId を保存（人ごとの「最後に見てたプレイヤー」）
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (currentPlayerId) {
+      localStorage.setItem(`currentPlayerId_${roomId}`, currentPlayerId);
+    } else {
+      localStorage.removeItem(`currentPlayerId_${roomId}`);
+    }
+  }, [currentPlayerId, roomId]);
 
-  // localStorage も room ごとに分ける（おまけ）
+  // おまけ: room ごとの gameState 保存（無くても動く）
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(
@@ -88,6 +122,7 @@ useEffect(() => {
   };
 
   const updateCurrentPlayer = (updater: (player: Player) => Player) => {
+    if (!currentPlayerId) return;
     saveStateForUndo();
     setPlayers((prev) =>
       prev.map((p) => (p.id === currentPlayerId ? updater(p) : p))
@@ -169,6 +204,16 @@ useEffect(() => {
       setPlayers(next);
     }
   };
+
+  // ここで「真っ白対策」：players があるのに currentPlayerId が決まってないときは簡易表示
+  if (players.length > 0 && !currentPlayer) {
+    return (
+      <div style={{ padding: 16 }}>
+        <p>プレイヤーの選択に失敗しました。Home から入り直してみてください。</p>
+        <button onClick={() => navigate("/")}>ホームへ戻る</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>

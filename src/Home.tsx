@@ -50,7 +50,10 @@ function Home() {
         const storedCurrent = localStorage.getItem(
           `currentPlayerId_${roomId}`
         );
-        if (storedCurrent && data.players?.some((p: Player) => p.id === storedCurrent)) {
+        if (
+          storedCurrent &&
+          data.players?.some((p: Player) => p.id === storedCurrent)
+        ) {
           setCurrentPlayerId(storedCurrent);
         } else if (data.players && data.players.length > 0) {
           setCurrentPlayerId(data.players[0].id);
@@ -128,7 +131,9 @@ function Home() {
 
   const goToPlayerView = () => {
     if (currentPlayerId) {
-      navigate(`/play?roomId=${encodeURIComponent(roomId)}&playerId=${currentPlayerId}`);
+      navigate(
+        `/play?roomId=${encodeURIComponent(roomId)}&playerId=${currentPlayerId}`
+      );
     }
   };
 
@@ -216,7 +221,13 @@ function Home() {
                       削除
                     </button>
                   </div>
-                  <div style={{ fontSize: 12, marginTop: 4, textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      marginTop: 4,
+                      textAlign: "left",
+                    }}
+                  >
                     <div>
                       プレイヤーURL:{" "}
                       <input
