@@ -25,12 +25,8 @@ function PlayerView() {
     typeof window !== "undefined" ? localStorage.getItem("roomId") : null;
   const roomId = urlRoomId || storedRoomId || "default";
 
-  // playerId: URL > localStorage(currentPlayerId_roomId)
+  // playerId: URL > 後で players を見て決める
   const urlPlayerId = searchParams.get("playerId");
-  const storedPlayerId =
-    typeof window !== "undefined"
-      ? localStorage.getItem(`currentPlayerId_${roomId}`)
-      : null;
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -38,66 +34,78 @@ function PlayerView() {
   const [deltaValues, setDeltaValues] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [undoStack, setUndoStack] = useState<Player[][]>([]);
   const [redoStack, setRedoStack] = useState<Player[][]>([]);
 
-  // ★ 読み込み中フラグ
-  const [loading, setLoading] = useState(true);
-
-  // roomId ごとの状態取得
+  // 🔹 初期化：サーバーからは一切読まず、localStorage だけを見る
   useEffect(() => {
-    const fetchState = async () => {
-      try {
-        setLoading(true);
-        setGlobalError(null);
-
-        const res = await fetch(
-          `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
-        );
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        const serverPlayers: Player[] = data.players || [];
-        setPlayers(serverPlayers);
-
-        if (serverPlayers.length === 0) {
-          setCurrentPlayerId(null);
-          setLoading(false);
-          return;
-        }
-
-        // URL > localStorage > 先頭プレイヤー の優先順位で currentPlayerId を決める
-        const candidate =
-          (urlPlayerId &&
-            serverPlayers.some((p) => p.id === urlPlayerId) &&
-            urlPlayerId) ||
-          (storedPlayerId &&
-            serverPlayers.some((p) => p.id === storedPlayerId) &&
-            storedPlayerId) ||
-          serverPlayers[0].id;
-
-        setCurrentPlayerId(candidate);
+    try {
+      const raw = localStorage.getItem(`gameState_${roomId}`);
+      if (!raw) {
+        setPlayers([]);
+        setCurrentPlayerId(null);
         setLoading(false);
-      } catch (e: any) {
-        console.error("状態の取得に失敗しました", e);
-        setGlobalError(
-          "プレイヤー情報の取得に失敗しました。ホームに戻ってやり直してください。"
-        );
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchState();
-  }, [roomId, urlPlayerId, storedPlayerId]);
+      const parsed = JSON.parse(raw) as {
+        players?: Player[];
+        currentPlayerId?: string | null;
+      };
 
-  // roomId ごとの状態保存（players だけ）
+      const localPlayers = parsed.players || [];
+      if (localPlayers.length === 0) {
+        setPlayers([]);
+        setCurrentPlayerId(null);
+        setLoading(false);
+        return;
+      }
+
+      setPlayers(localPlayers);
+
+      // currentPlayerId の決定：URL > localStorage > 先頭
+      const storedCurrent =
+        typeof window !== "undefined"
+          ? localStorage.getItem(`currentPlayerId_${roomId}`)
+          : null;
+
+      const candidate =
+        (urlPlayerId &&
+          localPlayers.some((p) => p.id === urlPlayerId) &&
+          urlPlayerId) ||
+        (storedCurrent &&
+          localPlayers.some((p) => p.id === storedCurrent) &&
+          storedCurrent) ||
+        localPlayers[0].id;
+
+      setCurrentPlayerId(candidate);
+      setLoading(false);
+    } catch (e) {
+      console.error("ローカル状態の復元に失敗しました", e);
+      setGlobalError("ローカルのデータが壊れている可能性があります。ホームから作り直してください。");
+      setLoading(false);
+    }
+  }, [roomId, urlPlayerId]);
+
+  // 🔹 変更があったら localStorage に保存 ＋ サーバーへ送信（ミラー用）
   useEffect(() => {
-    if (!roomId || players.length === 0) return;
+    if (loading) return; // 初期化中は何もしない
 
-    const saveState = async () => {
+    // localStorage に保存（ここが本物の“DB”扱い）
+    localStorage.setItem(
+      `gameState_${roomId}`,
+      JSON.stringify({ players, currentPlayerId })
+    );
+    if (currentPlayerId) {
+      localStorage.setItem(`currentPlayerId_${roomId}`, currentPlayerId);
+    } else {
+      localStorage.removeItem(`currentPlayerId_${roomId}`);
+    }
+
+    // サーバーへは「モニター用スナップショット」として送るだけ
+    const syncToServer = async () => {
       try {
         await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
           method: "POST",
@@ -105,31 +113,12 @@ function PlayerView() {
           body: JSON.stringify({ roomId, players }),
         });
       } catch (err) {
-        console.error("状態の保存に失敗しました", err);
+        console.error("状態のサーバー同期に失敗しました（モニター側にだけ影響）", err);
       }
     };
 
-    saveState();
-  }, [players, roomId]);
-
-  // currentPlayerId を localStorage に保存
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (currentPlayerId) {
-      localStorage.setItem(`currentPlayerId_${roomId}`, currentPlayerId);
-    } else {
-      localStorage.removeItem(`currentPlayerId_${roomId}`);
-    }
-  }, [currentPlayerId, roomId]);
-
-  // （おまけ）room ごとの gameState を保存
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(
-      `gameState_${roomId}`,
-      JSON.stringify({ players, currentPlayerId })
-    );
-  }, [players, currentPlayerId, roomId]);
+    syncToServer();
+  }, [players, currentPlayerId, roomId, loading]);
 
   const currentPlayer =
     (currentPlayerId && players.find((p) => p.id === currentPlayerId)) || null;
@@ -228,7 +217,6 @@ function PlayerView() {
 
   // ===== 表示切り替え =====
 
-  // ① 読み込み中
   if (loading) {
     return (
       <div style={{ padding: 16 }}>
@@ -237,7 +225,6 @@ function PlayerView() {
     );
   }
 
-  // ② API エラー
   if (globalError) {
     return (
       <div style={{ padding: 16 }}>
@@ -247,20 +234,17 @@ function PlayerView() {
     );
   }
 
-  // ③ プレイヤーが本当にいない
   if (players.length === 0 || !currentPlayer) {
     return (
       <div style={{ padding: 16 }}>
-        <p>プレイヤーが見つかりません。ホームからプレイヤーを作成してください。</p>
+        <p>プレイヤーが見つかりません。ホームで作成してください。</p>
         <button onClick={() => navigate("/")}>ホームへ戻る</button>
       </div>
     );
   }
 
-  // ④ 正常なプレイヤー画面
   return (
     <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
-      {/* デバッグ用（邪魔なら消してOK） */}
       <div
         style={{
           fontSize: 12,
