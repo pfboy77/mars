@@ -84,16 +84,18 @@ function PlayerView() {
       setLoading(false);
     } catch (e) {
       console.error("ローカル状態の復元に失敗しました", e);
-      setGlobalError("ローカルのデータが壊れている可能性があります。ホームから作り直してください。");
+      setGlobalError(
+        "ローカルのデータが壊れている可能性があります。ホームから作り直してください。"
+      );
       setLoading(false);
     }
   }, [roomId, urlPlayerId]);
 
-  // 🔹 変更があったら localStorage に保存 ＋ サーバーへ送信（ミラー用）
+  // 🔹 変更があったら localStorage に保存 ＋ サーバーへは 1秒デバウンスで送信
   useEffect(() => {
-    if (loading) return; // 初期化中は何もしない
+    if (loading) return;
 
-    // localStorage に保存（ここが本物の“DB”扱い）
+    // localStorage に保存（ここが“本物のDB”扱い）
     localStorage.setItem(
       `gameState_${roomId}`,
       JSON.stringify({ players, currentPlayerId })
@@ -104,20 +106,26 @@ function PlayerView() {
       localStorage.removeItem(`currentPlayerId_${roomId}`);
     }
 
-    // サーバーへは「モニター用スナップショット」として送るだけ
-    const syncToServer = async () => {
-      try {
-        await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId, players }),
-        });
-      } catch (err) {
-        console.error("状態のサーバー同期に失敗しました（モニター側にだけ影響）", err);
-      }
-    };
+    // サーバーには 1秒後にまとめて送る（その間に変更があればタイマーをクリア）
+    const timerId = setTimeout(() => {
+      const sync = async () => {
+        try {
+          await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomId, players }),
+          });
+        } catch (err) {
+          console.error(
+            "状態のサーバー同期に失敗しました（モニター側にだけ影響）",
+            err
+          );
+        }
+      };
+      sync();
+    }, 1000); // ← 「ある程度の頻度」：最後の変更から1秒後
 
-    syncToServer();
+    return () => clearTimeout(timerId);
   }, [players, currentPlayerId, roomId, loading]);
 
   const currentPlayer =

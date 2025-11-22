@@ -7,13 +7,9 @@ const API_URL = "https://mars-api-server.onrender.com";
 const MonitorView: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  // URL > localStorage > default の優先順位で roomId を決定
-  const urlRoomId = searchParams.get("roomId");
-  const storedRoomId =
-    typeof window !== "undefined" ? localStorage.getItem("roomId") : null;
-  const roomId = urlRoomId || storedRoomId || "default";
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId") ?? "default";
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -21,6 +17,9 @@ const MonitorView: React.FC = () => {
         const res = await fetch(
           `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
         );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         setPlayers(data.players || []);
       } catch (err) {
@@ -28,12 +27,11 @@ const MonitorView: React.FC = () => {
       }
     };
 
-    fetchPlayers();
-    const interval = setInterval(fetchPlayers, 2000);
+    fetchPlayers(); // 初回
+    const interval = setInterval(fetchPlayers, 2000); // 2秒ごとに更新
     return () => clearInterval(interval);
-  }, [roomId]); // roomId が変わったら監視対象を切り替える
+  }, [roomId]);
 
-  // 2x2 レイアウト（最大 4 人）
   const gridStyle =
     players.length <= 4
       ? {
