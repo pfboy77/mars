@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import ResourceCard from "./components/ResourceCard";
 import { Resource, Player } from "./types";
 
+const API_URL = "https://mars-api-server.onrender.com";
+
 const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "MC", amount: 0, production: 0, isMegaCredit: true },
   { id: uuidv4(), name: "建材", amount: 0, production: 0 },
@@ -16,8 +18,12 @@ const initialResources = (): Resource[] => [
 function PlayerView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // ★ URL から roomId を取得（なければ default）
-  const roomId = searchParams.get("roomId") ?? "default";
+
+  // URL > localStorage > default の優先順位で roomId を決定
+  const urlRoomId = searchParams.get("roomId");
+  const storedRoomId =
+    typeof window !== "undefined" ? localStorage.getItem("roomId") : null;
+  const roomId = urlRoomId || storedRoomId || "default";
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -27,9 +33,7 @@ function PlayerView() {
   const [undoStack, setUndoStack] = useState<Player[][]>([]);
   const [redoStack, setRedoStack] = useState<Player[][]>([]);
 
-  const API_URL = "https://mars-api-server.onrender.com";
-
-  // ★ roomId ごとの状態取得
+  // roomId ごとの状態取得
   useEffect(() => {
     const fetchState = async () => {
       try {
@@ -46,7 +50,7 @@ function PlayerView() {
     fetchState();
   }, [roomId]);
 
-  // ★ roomId ごとの状態保存
+  // roomId ごとの状態保存
   useEffect(() => {
     const saveState = async () => {
       try {
@@ -63,8 +67,9 @@ function PlayerView() {
     if (players.length > 0) saveState();
   }, [players, currentPlayerId, roomId]);
 
-  // ★ localStorage も room ごとに分ける（おまけ）
+  // localStorage も room ごとに分ける（おまけ）
   useEffect(() => {
+    if (typeof window === "undefined") return;
     localStorage.setItem(
       `gameState_${roomId}`,
       JSON.stringify({ players, currentPlayerId })
