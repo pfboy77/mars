@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import ResourceCard from "./components/ResourceCard";
@@ -15,6 +15,9 @@ const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "発熱", amount: 0, production: 0, isHeat: true },
 ];
 
+const arePlayersEqual = (a: Player[], b: Player[]) =>
+  JSON.stringify(a) === JSON.stringify(b);
+
 function PlayerView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -30,6 +33,7 @@ function PlayerView() {
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const currentPlayerIdRef = useRef<string | null>(null);
 
   const [deltaValues, setDeltaValues] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
@@ -38,58 +42,253 @@ function PlayerView() {
 
   const [undoStack, setUndoStack] = useState<Player[][]>([]);
   const [redoStack, setRedoStack] = useState<Player[][]>([]);
+  const lastLocalChangeRef = useRef<number>(0);
 
-  // 🔹 初期化：サーバーからは一切読まず、localStorage だけを見る
+  const playersRef = useRef<Player[]>([]);
+  const roomIdRef = useRef<string>(roomId);
+
+  const selectCurrentPlayerId = (list: Player[]) => {
+    const storedCurrent =
+      typeof window !== "undefined"
+        ? localStorage.getItem(`currentPlayerId_${roomId}`)
+        : null;
+
+    return (
+      (urlPlayerId && list.some((p) => p.id === urlPlayerId) && urlPlayerId) ||
+      (storedCurrent && list.some((p) => p.id === storedCurrent) && storedCurrent) ||
+      list[0]?.id ||
+      null
+    );
+  };
+
+  const markLocalChange = () => {
+    lastLocalChangeRef.current = Date.now();
+  };
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`gameState_${roomId}`);
-      if (!raw) {
-        setPlayers([]);
-        setCurrentPlayerId(null);
-        setLoading(false);
+    playersRef.current = players;
+  }, [players]);
+
+  useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
+
+  const mergeServerAndLocal = (
+    serverPlayers: Player[],
+    localPlayers: Player[],
+    currentId: string | null
+  ) => {
+    const merged: Player[] = [];
+
+    serverPlayers.forEach((serverPlayer) => {
+      const localMatch = localPlayers.find((p) => p.id === serverPlayer.id);
+      if (localMatch) {
+        // 自分が操作しているプレイヤーだけはローカルを優先（同時編集の上書きを防ぐ）
+        merged.push(
+          currentId && localMatch.id === currentId ? localMatch : serverPlayer
+        );
+      } else {
+        merged.push(serverPlayer);
+      }
+    });
+
+    // サーバーにまだ存在しないローカルのプレイヤー（新規追加など）は残す
+    localPlayers.forEach((localPlayer) => {
+      if (!merged.some((p) => p.id === localPlayer.id)) {
+        merged.push(localPlayer);
+      }
+    });
+
+    return merged;
+  };
+
+  const syncWithServer = useCallback(
+    async (applyToState: boolean) => {
+      const fetchStartedAt = Date.now();
+      const room = roomIdRef.current;
+
+      // 変更が一度もない場合は無駄なPOSTを避ける
+      if (lastLocalChangeRef.current === 0) {
         return;
       }
 
-      const parsed = JSON.parse(raw) as {
-        players?: Player[];
-        currentPlayerId?: string | null;
-      };
+      try {
+        const res = await fetch(`${API_URL}/?roomId=${encodeURIComponent(room)}`);
+        const data = res.ok ? await res.json() : { players: [] };
+        if (lastLocalChangeRef.current > fetchStartedAt) {
+          return;
+        }
+        const serverPlayers: Player[] = data.players || [];
+        const merged = mergeServerAndLocal(
+          serverPlayers,
+          playersRef.current,
+          currentPlayerIdRef.current
+        );
+        if (lastLocalChangeRef.current > fetchStartedAt) {
+          return;
+        }
 
-      const localPlayers = parsed.players || [];
-      if (localPlayers.length === 0) {
-        setPlayers([]);
-        setCurrentPlayerId(null);
+        if (applyToState) {
+          setPlayers((prev) => (arePlayersEqual(prev, merged) ? prev : merged));
+        }
+
+        await fetch(`${API_URL}/?roomId=${encodeURIComponent(room)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomId: room, players: merged }),
+        });
+      } catch (err) {
+        console.error(
+          "状態のサーバー同期に失敗しました（モニター側にだけ影響）",
+          err
+        );
+      }
+    },
+    []
+  );
+
+  // 🔹 初期化：まずサーバーを読む。空 or 失敗時は localStorage を見る
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateFromLocal = () => {
+      try {
+        const raw = localStorage.getItem(`gameState_${roomId}`);
+        if (!raw) {
+          setPlayers([]);
+          setCurrentPlayerId(null);
+          setLoading(false);
+          return;
+        }
+
+        const parsed = JSON.parse(raw) as {
+          players?: Player[];
+          currentPlayerId?: string | null;
+        };
+
+        const localPlayers = parsed.players || [];
+        if (localPlayers.length === 0) {
+          setPlayers([]);
+          setCurrentPlayerId(null);
+          setLoading(false);
+          return;
+        }
+
+        setPlayers(localPlayers);
+        const candidate = selectCurrentPlayerId(localPlayers);
+        setCurrentPlayerId(candidate);
         setLoading(false);
-        return;
+      } catch (e) {
+        console.error("ローカル状態の復元に失敗しました", e);
+        setGlobalError(
+          "ローカルのデータが壊れている可能性があります。ホームから作り直してください。"
+        );
+        setLoading(false);
+      }
+    };
+
+    const hydrateFromServer = async () => {
+      try {
+        const res = await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const serverPlayers: Player[] = data.players || [];
+
+        if (serverPlayers.length > 0) {
+          if (cancelled) return;
+          const candidate = selectCurrentPlayerId(serverPlayers);
+          setPlayers(serverPlayers);
+          setCurrentPlayerId(candidate);
+
+          localStorage.setItem(
+            `gameState_${roomId}`,
+            JSON.stringify({ players: serverPlayers, currentPlayerId: candidate })
+          );
+          if (candidate) {
+            localStorage.setItem(`currentPlayerId_${roomId}`, candidate);
+          } else {
+            localStorage.removeItem(`currentPlayerId_${roomId}`);
+          }
+
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error("サーバー状態の取得に失敗しました", err);
       }
 
-      setPlayers(localPlayers);
+      if (!cancelled) {
+        hydrateFromLocal();
+      }
+    };
 
-      // currentPlayerId の決定：URL > localStorage > 先頭
-      const storedCurrent =
-        typeof window !== "undefined"
-          ? localStorage.getItem(`currentPlayerId_${roomId}`)
-          : null;
+    hydrateFromServer();
 
-      const candidate =
-        (urlPlayerId &&
-          localPlayers.some((p) => p.id === urlPlayerId) &&
-          urlPlayerId) ||
-        (storedCurrent &&
-          localPlayers.some((p) => p.id === storedCurrent) &&
-          storedCurrent) ||
-        localPlayers[0].id;
-
-      setCurrentPlayerId(candidate);
-      setLoading(false);
-    } catch (e) {
-      console.error("ローカル状態の復元に失敗しました", e);
-      setGlobalError(
-        "ローカルのデータが壊れている可能性があります。ホームから作り直してください。"
-      );
-      setLoading(false);
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [roomId, urlPlayerId]);
+
+  // 🔹 サーバーの最新情報を定期取得（最近ローカル更新した直後はスキップ）
+  useEffect(() => {
+    if (loading) return;
+
+    let cancelled = false;
+
+    const fetchLatest = async () => {
+      if (Date.now() - lastLocalChangeRef.current < 1500) {
+        return;
+      }
+
+      const fetchStartedAt = Date.now();
+
+      try {
+        const res = await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverPlayers: Player[] = data.players || [];
+        let updatedPlayers: Player[] | null = null;
+
+        setPlayers((prev) => {
+          if (lastLocalChangeRef.current > fetchStartedAt) {
+            return prev;
+          }
+          const merged = mergeServerAndLocal(
+            serverPlayers,
+            prev,
+            currentPlayerIdRef.current
+          );
+          if (arePlayersEqual(prev, merged)) return prev;
+          updatedPlayers = merged;
+          return merged;
+        });
+
+        if (updatedPlayers && !cancelled) {
+          const candidate = selectCurrentPlayerId(updatedPlayers);
+          setCurrentPlayerId(candidate);
+          localStorage.setItem(
+            `gameState_${roomId}`,
+            JSON.stringify({ players: updatedPlayers, currentPlayerId: candidate })
+          );
+          if (candidate) {
+            localStorage.setItem(`currentPlayerId_${roomId}`, candidate);
+          } else {
+            localStorage.removeItem(`currentPlayerId_${roomId}`);
+          }
+        }
+      } catch (err) {
+        console.error("最新状態の取得に失敗しました", err);
+      }
+    };
+
+    const interval = setInterval(fetchLatest, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [roomId, urlPlayerId, loading]);
 
   // 🔹 変更があったら localStorage に保存 ＋ サーバーへは 1秒デバウンスで送信
   useEffect(() => {
@@ -108,28 +307,29 @@ function PlayerView() {
 
     // サーバーには 1秒後にまとめて送る（その間に変更があればタイマーをクリア）
     const timerId = setTimeout(() => {
-      const sync = async () => {
-        try {
-          await fetch(`${API_URL}/?roomId=${encodeURIComponent(roomId)}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomId, players }),
-          });
-        } catch (err) {
-          console.error(
-            "状態のサーバー同期に失敗しました（モニター側にだけ影響）",
-            err
-          );
-        }
-      };
-      sync();
+      syncWithServer(true);
     }, 1000); // ← 「ある程度の頻度」：最後の変更から1秒後
 
-    return () => clearTimeout(timerId);
+    return () => {
+      clearTimeout(timerId);
+    };
   }, [players, currentPlayerId, roomId, loading]);
+
+  // 画面離脱時にデバウンス前の変更を送る保険
+  useEffect(() => {
+    return () => {
+      if (lastLocalChangeRef.current > 0) {
+        syncWithServer(false);
+      }
+    };
+  }, [syncWithServer]);
 
   const currentPlayer =
     (currentPlayerId && players.find((p) => p.id === currentPlayerId)) || null;
+
+  useEffect(() => {
+    currentPlayerIdRef.current = currentPlayerId;
+  }, [currentPlayerId]);
 
   const saveStateForUndo = () => {
     setUndoStack((prev) => [
@@ -142,6 +342,7 @@ function PlayerView() {
   const updateCurrentPlayer = (updater: (player: Player) => Player) => {
     if (!currentPlayerId) return;
     saveStateForUndo();
+    markLocalChange();
     setPlayers((prev) =>
       prev.map((p) => (p.id === currentPlayerId ? updater(p) : p))
     );
@@ -211,6 +412,7 @@ function PlayerView() {
     const previous = undoStack.pop();
     if (previous) {
       setRedoStack((prev) => [...prev, players]);
+      markLocalChange();
       setPlayers(previous);
     }
   };
@@ -219,6 +421,7 @@ function PlayerView() {
     const next = redoStack.pop();
     if (next) {
       setUndoStack((prev) => [...prev, players]);
+      markLocalChange();
       setPlayers(next);
     }
   };
