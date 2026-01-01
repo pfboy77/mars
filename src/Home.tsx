@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { Player, Resource } from "./types";
-
-const API_URL = "https://mars-api-server.onrender.com";
+import { API_URL } from "./config";
 
 const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "MC", amount: 0, production: 0, isMegaCredit: true },
@@ -21,6 +20,7 @@ function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState<string>("");
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // 初回だけ roomId を決める（localStorage に保存）
   useEffect(() => {
@@ -34,7 +34,21 @@ function Home() {
     }
   }, []);
 
-  // roomId が決まったら、その部屋の状態を取得
+  const fallbackFromLocal = (): Player[] | null => {
+    try {
+      const raw = localStorage.getItem(`gameState_${roomId}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { players?: Player[] };
+      if (parsed.players && parsed.players.length > 0) {
+        return parsed.players;
+      }
+    } catch (e) {
+      console.error("ローカル復元に失敗しました", e);
+    }
+    return null;
+  };
+
+  // roomId が決まったら、その部屋の状態を取得（失敗や空ならローカルを試す）
   useEffect(() => {
     if (!roomId) return;
 
@@ -44,7 +58,20 @@ function Home() {
           `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
         );
         const data = await res.json();
-        setPlayers(data.players || []);
+        const serverPlayers: Player[] = data.players || [];
+        let effectivePlayers: Player[] = serverPlayers;
+
+        if (serverPlayers.length === 0) {
+          // サーバーに残っていない場合はローカルから復元を試す
+          const restored = fallbackFromLocal();
+          if (restored && restored.length > 0) {
+            effectivePlayers = restored;
+          } else {
+            effectivePlayers = [];
+          }
+        }
+
+        setPlayers(effectivePlayers);
 
         // currentPlayerId はローカルで持つ
         const storedCurrent = localStorage.getItem(
@@ -52,17 +79,36 @@ function Home() {
         );
         if (
           storedCurrent &&
-          data.players?.some((p: Player) => p.id === storedCurrent)
+          effectivePlayers.some((p: Player) => p.id === storedCurrent)
         ) {
           setCurrentPlayerId(storedCurrent);
-        } else if (data.players && data.players.length > 0) {
-          setCurrentPlayerId(data.players[0].id);
+        } else if (effectivePlayers.length > 0) {
+          setCurrentPlayerId(effectivePlayers[0].id);
         } else {
           setCurrentPlayerId(null);
         }
       } catch (err) {
         console.error("状態の取得に失敗しました", err);
+        const restored = fallbackFromLocal();
+        if (restored && restored.length > 0) {
+          setPlayers(restored);
+          const storedCurrent = localStorage.getItem(
+            `currentPlayerId_${roomId}`
+          );
+          if (
+            storedCurrent &&
+            restored.some((p: Player) => p.id === storedCurrent)
+          ) {
+            setCurrentPlayerId(storedCurrent);
+          } else {
+            setCurrentPlayerId(restored[0].id);
+          }
+        } else {
+          setPlayers([]);
+          setCurrentPlayerId(null);
+        }
       }
+      setHasInitialized(true);
     };
 
     fetchState();
@@ -70,7 +116,7 @@ function Home() {
 
   // players が変わったらサーバーに保存
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !hasInitialized) return;
 
     const saveState = async () => {
       try {
@@ -85,7 +131,7 @@ function Home() {
     };
 
     saveState();
-  }, [players, roomId]);
+  }, [players, roomId, hasInitialized]);
 
   // currentPlayerId を localStorage にも保持
   useEffect(() => {

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Player } from "./types";
-
-const API_URL = "https://mars-api-server.onrender.com";
+import { API_URL } from "./config";
 
 const MonitorView: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);

@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import ResourceCard from "./components/ResourceCard";
 import { Resource, Player } from "./types";
-
-const API_URL = "https://mars-api-server.onrender.com";
+import { API_URL } from "./config";
 
 const initialResources = (): Resource[] => [
   { id: uuidv4(), name: "MC", amount: 0, production: 0, isMegaCredit: true },
