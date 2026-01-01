@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { Player, Resource } from "./types";
@@ -23,6 +23,7 @@ function Home() {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [roomInput, setRoomInput] = useState<string>("");
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const lastLocalChangeRef = useRef(0);
 
   // 初回だけ roomId を決める（localStorage に保存）
   useEffect(() => {
@@ -57,11 +58,17 @@ function Home() {
     if (!roomId) return;
 
     const fetchState = async () => {
+      const fetchStartedAt = Date.now();
       try {
         const res = await fetch(
           `${API_URL}/?roomId=${encodeURIComponent(roomId)}`
         );
         const data = await res.json();
+        if (lastLocalChangeRef.current > fetchStartedAt) {
+          // ユーザーが先に変更した場合はサーバー結果で上書きしない
+          setHasInitialized(true);
+          return;
+        }
         const serverPlayers: Player[] = data.players || [];
         let effectivePlayers: Player[] = serverPlayers;
 
@@ -148,6 +155,7 @@ function Home() {
     if (!nextId) return;
     if (nextId === roomId) return;
 
+    lastLocalChangeRef.current = Date.now();
     localStorage.setItem("roomId", nextId);
     setRoomInput(nextId);
     setHasInitialized(false);
@@ -175,6 +183,7 @@ function Home() {
       tr: 20,
       resources: initialResources(),
     };
+    lastLocalChangeRef.current = Date.now();
     setPlayers((prev) => [...prev, newPlayer]);
     setCurrentPlayerId(newPlayer.id);
     setNewPlayerName("");
@@ -187,6 +196,7 @@ function Home() {
 
   const handleDeletePlayer = (id: string) => {
     const updated = players.filter((p) => p.id !== id);
+    lastLocalChangeRef.current = Date.now();
     setPlayers(updated);
     if (currentPlayerId === id) {
       setCurrentPlayerId(updated[0]?.id || null);
@@ -195,6 +205,7 @@ function Home() {
   };
 
   const handleResetAll = () => {
+    lastLocalChangeRef.current = Date.now();
     setPlayers([]);
     setCurrentPlayerId(null);
     setHasLocalChanges(true);
