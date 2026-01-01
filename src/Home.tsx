@@ -22,6 +22,7 @@ function Home() {
   const [newPlayerName, setNewPlayerName] = useState<string>("");
   const [hasInitialized, setHasInitialized] = useState(false);
   const [roomInput, setRoomInput] = useState<string>("");
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
   // 初回だけ roomId を決める（localStorage に保存）
   useEffect(() => {
@@ -69,9 +70,12 @@ function Home() {
           const restored = fallbackFromLocal();
           if (restored && restored.length > 0) {
             effectivePlayers = restored;
+            setHasLocalChanges(true); // サーバーが空でもローカルを持ち上げたら再保存する
           } else {
             effectivePlayers = [];
           }
+        } else {
+          setHasLocalChanges(false);
         }
 
         setPlayers(effectivePlayers);
@@ -95,6 +99,7 @@ function Home() {
         const restored = fallbackFromLocal();
         if (restored && restored.length > 0) {
           setPlayers(restored);
+          setHasLocalChanges(true);
           const storedCurrent = localStorage.getItem(
             `currentPlayerId_${roomId}`
           );
@@ -109,6 +114,7 @@ function Home() {
         } else {
           setPlayers([]);
           setCurrentPlayerId(null);
+          setHasLocalChanges(false);
         }
       }
       setHasInitialized(true);
@@ -120,6 +126,7 @@ function Home() {
   // players が変わったらサーバーに保存
   useEffect(() => {
     if (!roomId || !hasInitialized) return;
+    if (players.length === 0 && !hasLocalChanges) return;
 
     const saveState = async () => {
       try {
@@ -147,6 +154,7 @@ function Home() {
     setRoomId(nextId);
     setPlayers([]);
     setCurrentPlayerId(null);
+    setHasLocalChanges(false);
   };
 
   // currentPlayerId を localStorage にも保持
@@ -170,6 +178,7 @@ function Home() {
     setPlayers((prev) => [...prev, newPlayer]);
     setCurrentPlayerId(newPlayer.id);
     setNewPlayerName("");
+    setHasLocalChanges(true);
   };
 
   const handleSelectPlayer = (id: string) => {
@@ -182,11 +191,13 @@ function Home() {
     if (currentPlayerId === id) {
       setCurrentPlayerId(updated[0]?.id || null);
     }
+    setHasLocalChanges(true);
   };
 
   const handleResetAll = () => {
     setPlayers([]);
     setCurrentPlayerId(null);
+    setHasLocalChanges(true);
   };
 
   const goToPlayerView = () => {

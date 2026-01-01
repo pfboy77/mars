@@ -37,18 +37,21 @@ const sendJson = (res, statusCode, body) => {
 };
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const roomId = url.searchParams.get("roomId") || "default";
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${url.pathname} roomId=${roomId}`
+  );
+
   if (req.method === "OPTIONS") {
     sendJson(res, 204, {});
     return;
   }
 
-  const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname !== "/") {
     sendJson(res, 404, { error: "Not Found" });
     return;
   }
-
-  const roomId = url.searchParams.get("roomId") || "default";
 
   if (req.method === "GET") {
     sendJson(res, 200, { players: store[roomId] || [] });
