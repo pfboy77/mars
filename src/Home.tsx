@@ -21,16 +21,19 @@ function Home() {
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState<string>("");
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [roomInput, setRoomInput] = useState<string>("");
 
   // 初回だけ roomId を決める（localStorage に保存）
   useEffect(() => {
     const stored = localStorage.getItem("roomId");
     if (stored) {
       setRoomId(stored);
+      setRoomInput(stored);
     } else {
       const newId = uuidv4();
       localStorage.setItem("roomId", newId);
       setRoomId(newId);
+      setRoomInput(newId);
     }
   }, []);
 
@@ -133,6 +136,19 @@ function Home() {
     saveState();
   }, [players, roomId, hasInitialized]);
 
+  const handleRoomIdUpdate = () => {
+    const nextId = roomInput.trim();
+    if (!nextId) return;
+    if (nextId === roomId) return;
+
+    localStorage.setItem("roomId", nextId);
+    setRoomInput(nextId);
+    setHasInitialized(false);
+    setRoomId(nextId);
+    setPlayers([]);
+    setCurrentPlayerId(null);
+  };
+
   // currentPlayerId を localStorage にも保持
   useEffect(() => {
     if (!roomId) return;
@@ -198,6 +214,28 @@ function Home() {
           Room ID: <code>{roomId}</code>
         </p>
       )}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 8,
+          alignItems: "center",
+          marginTop: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <input
+          type="text"
+          value={roomInput}
+          onChange={(e) => setRoomInput(e.target.value)}
+          placeholder="roomId を入力"
+          style={{ padding: "6px 8px", minWidth: 240 }}
+        />
+        <button onClick={handleRoomIdUpdate} style={{ padding: "6px 12px" }}>
+          roomId を確定
+        </button>
+      </div>
 
       <div style={{ marginTop: 24 }}>
         <input
