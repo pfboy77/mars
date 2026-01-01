@@ -61,9 +61,24 @@ function PlayerView() {
     );
   };
 
-  const markLocalChange = () => {
-    lastLocalChangeRef.current = Date.now();
-  };
+  const persistLocal = useCallback(
+    (nextPlayers: Player[], nextCurrentId: string | null) => {
+      playersRef.current = nextPlayers;
+      currentPlayerIdRef.current = nextCurrentId;
+
+      const room = roomIdRef.current;
+      localStorage.setItem(
+        `gameState_${room}`,
+        JSON.stringify({ players: nextPlayers, currentPlayerId: nextCurrentId })
+      );
+      if (nextCurrentId) {
+        localStorage.setItem(`currentPlayerId_${room}`, nextCurrentId);
+      } else {
+        localStorage.removeItem(`currentPlayerId_${room}`);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     playersRef.current = players;
@@ -103,7 +118,7 @@ function PlayerView() {
   };
 
   const syncWithServer = useCallback(
-    async (applyToState: boolean) => {
+    async (applyToState: boolean, opts?: { useBeacon?: boolean }) => {
       const fetchStartedAt = Date.now();
       const room = roomIdRef.current;
 
@@ -130,6 +145,22 @@ function PlayerView() {
 
         if (applyToState) {
           setPlayers((prev) => (arePlayersEqual(prev, merged) ? prev : merged));
+        }
+
+        if (
+          opts?.useBeacon &&
+          typeof navigator !== "undefined" &&
+          typeof navigator.sendBeacon === "function"
+        ) {
+          const blob = new Blob(
+            [JSON.stringify({ roomId: room, players: merged })],
+            { type: "application/json" }
+          );
+          navigator.sendBeacon(
+            `${API_URL}/?roomId=${encodeURIComponent(room)}`,
+            blob
+          );
+          return;
         }
 
         await fetch(`${API_URL}/?roomId=${encodeURIComponent(room)}`, {
@@ -177,6 +208,7 @@ function PlayerView() {
         setPlayers(localPlayers);
         const candidate = selectCurrentPlayerId(localPlayers);
         setCurrentPlayerId(candidate);
+        persistLocal(localPlayers, candidate);
         setLoading(false);
       } catch (e) {
         console.error("ローカル状態の復元に失敗しました", e);
@@ -201,16 +233,7 @@ function PlayerView() {
           const candidate = selectCurrentPlayerId(serverPlayers);
           setPlayers(serverPlayers);
           setCurrentPlayerId(candidate);
-
-          localStorage.setItem(
-            `gameState_${roomId}`,
-            JSON.stringify({ players: serverPlayers, currentPlayerId: candidate })
-          );
-          if (candidate) {
-            localStorage.setItem(`currentPlayerId_${roomId}`, candidate);
-          } else {
-            localStorage.removeItem(`currentPlayerId_${roomId}`);
-          }
+          persistLocal(serverPlayers, candidate);
 
           setLoading(false);
           return;
@@ -268,15 +291,7 @@ function PlayerView() {
         if (updatedPlayers && !cancelled) {
           const candidate = selectCurrentPlayerId(updatedPlayers);
           setCurrentPlayerId(candidate);
-          localStorage.setItem(
-            `gameState_${roomId}`,
-            JSON.stringify({ players: updatedPlayers, currentPlayerId: candidate })
-          );
-          if (candidate) {
-            localStorage.setItem(`currentPlayerId_${roomId}`, candidate);
-          } else {
-            localStorage.removeItem(`currentPlayerId_${roomId}`);
-          }
+          persistLocal(updatedPlayers, candidate);
         }
       } catch (err) {
         console.error("最新状態の取得に失敗しました", err);
@@ -295,15 +310,7 @@ function PlayerView() {
     if (loading) return;
 
     // localStorage に保存（ここが“本物のDB”扱い）
-    localStorage.setItem(
-      `gameState_${roomId}`,
-      JSON.stringify({ players, currentPlayerId })
-    );
-    if (currentPlayerId) {
-      localStorage.setItem(`currentPlayerId_${roomId}`, currentPlayerId);
-    } else {
-      localStorage.removeItem(`currentPlayerId_${roomId}`);
-    }
+    persistLocal(players, currentPlayerId);
 
     // サーバーには 1秒後にまとめて送る（その間に変更があればタイマーをクリア）
     const timerId = setTimeout(() => {
@@ -313,16 +320,30 @@ function PlayerView() {
     return () => {
       clearTimeout(timerId);
     };
-  }, [players, currentPlayerId, roomId, loading]);
+  }, [players, currentPlayerId, roomId, loading, persistLocal, syncWithServer]);
 
   // 画面離脱時にデバウンス前の変更を送る保険
   useEffect(() => {
     return () => {
       if (lastLocalChangeRef.current > 0) {
-        syncWithServer(false);
+        syncWithServer(false, { useBeacon: true });
       }
     };
   }, [syncWithServer]);
+
+  // リロード時にもローカル保存 + サーバー送信を試みる
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const effectiveId = currentPlayerIdRef.current || currentPlayerId;
+      persistLocal(playersRef.current, effectiveId ?? null);
+      if (lastLocalChangeRef.current > 0) {
+        syncWithServer(false, { useBeacon: true });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentPlayerId, persistLocal, syncWithServer]);
 
   const currentPlayer =
     (currentPlayerId && players.find((p) => p.id === currentPlayerId)) || null;
@@ -340,12 +361,16 @@ function PlayerView() {
   };
 
   const updateCurrentPlayer = (updater: (player: Player) => Player) => {
-    if (!currentPlayerId) return;
+    const effectiveId = currentPlayerIdRef.current || currentPlayerId;
+    if (!effectiveId) return;
     saveStateForUndo();
-    markLocalChange();
-    setPlayers((prev) =>
-      prev.map((p) => (p.id === currentPlayerId ? updater(p) : p))
-    );
+    const now = Date.now();
+    setPlayers((prev) => {
+      const next = prev.map((p) => (p.id === effectiveId ? updater(p) : p));
+      persistLocal(next, effectiveId);
+      lastLocalChangeRef.current = now;
+      return next;
+    });
   };
 
   const handleAdd = (id: string) => {
@@ -412,8 +437,12 @@ function PlayerView() {
     const previous = undoStack.pop();
     if (previous) {
       setRedoStack((prev) => [...prev, players]);
-      markLocalChange();
-      setPlayers(previous);
+      const now = Date.now();
+      setPlayers(() => {
+        persistLocal(previous, currentPlayerIdRef.current || currentPlayerId);
+        lastLocalChangeRef.current = now;
+        return previous;
+      });
     }
   };
 
@@ -421,8 +450,12 @@ function PlayerView() {
     const next = redoStack.pop();
     if (next) {
       setUndoStack((prev) => [...prev, players]);
-      markLocalChange();
-      setPlayers(next);
+      const now = Date.now();
+      setPlayers(() => {
+        persistLocal(next, currentPlayerIdRef.current || currentPlayerId);
+        lastLocalChangeRef.current = now;
+        return next;
+      });
     }
   };
 
@@ -440,7 +473,9 @@ function PlayerView() {
     return (
       <div style={{ padding: 16 }}>
         <p>{globalError}</p>
-        <button onClick={() => navigate("/")}>ホームへ戻る</button>
+        <button onClick={() => syncWithServer(false).finally(() => navigate("/"))}>
+          ホームへ戻る
+        </button>
       </div>
     );
   }
@@ -449,7 +484,9 @@ function PlayerView() {
     return (
       <div style={{ padding: 16 }}>
         <p>プレイヤーが見つかりません。ホームで作成してください。</p>
-        <button onClick={() => navigate("/")}>ホームへ戻る</button>
+        <button onClick={() => syncWithServer(false).finally(() => navigate("/"))}>
+          ホームへ戻る
+        </button>
       </div>
     );
   }
@@ -502,7 +539,7 @@ function PlayerView() {
         </span>
 
         <button
-          onClick={() => navigate("/")}
+          onClick={() => syncWithServer(false).finally(() => navigate("/"))}
           style={{ padding: "4px 12px", fontSize: "14px" }}
         >
           ホーム
