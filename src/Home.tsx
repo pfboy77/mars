@@ -84,9 +84,7 @@ function Home() {
       }
     };
 
-    if (players.length > 0) {
-      saveState();
-    }
+    saveState();
   }, [players, roomId]);
 
   // currentPlayerId を localStorage にも保持
