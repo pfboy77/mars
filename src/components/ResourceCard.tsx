@@ -68,9 +68,9 @@ const ResourceCard: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* 生産: − x ＋ */}
+      {/* 産出: − x ＋ */}
       <div>
-        <span>生産: </span>
+        <span>産出: </span>
         <button
           onClick={() =>
             updateProduction(
@@ -83,9 +83,7 @@ const ResourceCard: React.FC<Props> = ({
         </button>
         <span>{resource.production}</span>
         <button
-          onClick={() =>
-            updateProduction(Math.min(resource.production + 1, 100))
-          }
+          onClick={() => updateProduction(resource.production + 1)}
           style={{ ...buttonStyle, marginLeft: 4 }}
         >
           ＋

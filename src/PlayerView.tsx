@@ -624,7 +624,7 @@ function PlayerView() {
                   if (r.id === resource.id) {
                     const min = r.isMegaCredit ? -5 : 0;
                     const max = 100;
-                    const clampedVal = Math.max(min, Math.min(val, max));
+                    const clampedVal = Math.max(min, val);
                     return { ...r, production: clampedVal };
                   }
                   return r;
