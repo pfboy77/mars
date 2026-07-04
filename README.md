@@ -1,51 +1,68 @@
-# Getting Started with Create React App
+# Mars
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Mars is a Terraforming Mars-inspired web application built with React and TypeScript.
 
-## Available Scripts
+## Demo
 
-In the project directory, you can run:
+Coming soon.
 
-### `npm start`
+## Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- Turn-based resource management
+- Player resource tracking
+- Terraform Rating tracking
+- Undo / redo support
+- Local development API server
+- Responsive web UI
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Tech Stack
 
-### `npm run api`
+- React
+- TypeScript
+- React Router
+- Create React App
 
-Starts a tiny local API server at [http://localhost:4000](http://localhost:4000) that stores room/player data in `local-data.json` (created on first save).\
-The frontend reads `REACT_APP_API_URL` if set, otherwise it talks to this server.
+## Getting Started
 
-### `npm test`
+Install dependencies:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+npm install
 
-### `npm run build`
+Start the local API server:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+npm run api
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Start the app:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+npm start
 
-### `npm run eject`
+Open http://localhost:3000 in your browser.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Environment Variables
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The frontend reads REACT_APP_API_URL if set.
+If it is not set, the app talks to the local API server.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Example:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+REACT_APP_API_URL=http://localhost:4000
 
-## Learn More
+## Project Goal
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This project aims to provide a simple and reusable foundation for building turn-based strategy game UIs with React.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Roadmap
+
+- Improve UI/UX
+- Add multiplayer support
+- Add save/load improvements
+- Refactor game logic into reusable modules
+- Add tests
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+## License
+
+MIT
