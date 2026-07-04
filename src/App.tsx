@@ -1,8 +1,8 @@
-import React from "react";
-import ResourceCard from "./components/ResourceCard";
+import React, { useState } from "react";
 
 function App() {
-  return <div style={{ padding: 16 }}>Resource Companion</div>;
+  const [count] = useState(0);
+  return <div style={{ padding: 16 }}>Resource Companion {count}</div>;
 }
 
 export default App;
