@@ -2,16 +2,16 @@
 
 ## v0.1.0
 
-Initial public release of Mars, a fan-made strategy board game web application built with React and TypeScript.
+Initial public release of Red Planet Companion, a fan-made single-player strategy board game companion built with React and TypeScript.
 
 ### Highlights
 
 - React + TypeScript frontend
-- Turn-based resource management
-- Player resource tracking
+- Single-player resource management
 - Terraform Rating tracking
+- Resource production phase
 - Undo / redo support
-- Local development API server
+- Browser localStorage persistence
 - Responsive web UI
 
 ### Notes
