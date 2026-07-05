@@ -57,7 +57,7 @@ const ResourceCard: React.FC<Props> = ({
 
       {/* 生産: − x ＋ */}
       <div>
-        <span>生産: </span>
+        <span>Production: </span>
         <button
           onClick={() =>
             updateProduction(

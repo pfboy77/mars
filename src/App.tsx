@@ -6,11 +6,11 @@ import React, { useState, useEffect } from "react";
 
 const initialResources: Resource[] = [
   { id: uuidv4(), name: "MC", amount: 20, production: 0, isMegaCredit: true },
-  { id: uuidv4(), name: "建材", amount: 5, production: 0 },
-  { id: uuidv4(), name: "チタン", amount: 3, production: 0 },
-  { id: uuidv4(), name: "植物", amount: 4, production: 2 },
-  { id: uuidv4(), name: "電力", amount: 2, production: 1, isEnergy: true },
-  { id: uuidv4(), name: "発熱", amount: 0, production: 0, isHeat: true }
+  { id: uuidv4(), name: "Steel", amount: 5, production: 0 },
+  { id: uuidv4(), name: "Titanium", amount: 3, production: 0 },
+  { id: uuidv4(), name: "Plants", amount: 4, production: 2 },
+  { id: uuidv4(), name: "Energy", amount: 2, production: 1, isEnergy: true },
+  { id: uuidv4(), name: "Heat", amount: 0, production: 0, isHeat: true }
 ];
 
 const buttonStyle = {
@@ -62,7 +62,7 @@ const [tr, setTr] = useState<number>(
     const resource = resources.find(r => r.id === id);
     const delta = deltaValues[id] || 0;
     if (resource && delta > resource.amount) {
-      setError(`${resource.name} は ${resource.amount} 以下しか引けません`);
+      setError(`Cannot subtract more than ${resource.amount} ${resource.name}.`);
       setTimeout(() => setError(null), 2000);
       return;
     }
@@ -141,10 +141,10 @@ const [tr, setTr] = useState<number>(
         </div>
 
         <button onClick={handleProduction} style={{ backgroundColor: "#007bff", color: "white", padding: "4px 8px", borderRadius: 4 }}>
-          ▶︎ 産出
+          ▶︎ Production
         </button>
         <button onClick={handleReset} style={{ backgroundColor: "red", color: "white", padding: "4px 8px", borderRadius: 4 }}>
-          リセット
+          Reset
         </button>
       </div>
 
