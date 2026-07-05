@@ -6,6 +6,10 @@ Red Planet Companion is a fan-made single-player strategy board game companion b
 
 [Live Demo](https://mars-azure-beta.vercel.app/)
 
+## Screenshot
+
+![Red Planet Companion screenshot](docs/images/screenshot.png)
+
 ## Features
 
 - Single-player resource management
