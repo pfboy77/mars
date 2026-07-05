@@ -1,6 +1,6 @@
-# Mars
+# Red Planet Companion
 
-Mars is a fan-made strategy board game web application inspired by Terraforming Mars, built with React and TypeScript.
+Red Planet Companion is a fan-made single-player strategy board game companion built with React and TypeScript.
 
 ## Demo
 
@@ -19,7 +19,6 @@ Mars is a fan-made strategy board game web application inspired by Terraforming 
 
 - React
 - TypeScript
-- React Router
 - Create React App
 
 ## Getting Started
@@ -27,27 +26,24 @@ Mars is a fan-made strategy board game web application inspired by Terraforming 
 Install dependencies:
 
 ```bash
-
 npm install
+```
 
-## Environment Variables
-
-The frontend reads `REACT_APP_API_URL` if set. If it is not set, the app talks to the local API server.
-
-Example:
+Start the app:
 
 ```bash
-REACT_APP_API_URL=http://localhost:4000
+npm start
 ```
+
+Open http://localhost:3000 in your browser.
 
 ## Project Goal
 
-This project explores modern React architecture for turn-based strategy games and aims to provide a clean, maintainable, and reusable codebase for learning and experimentation.
+This project explores modern React architecture for turn-based strategy game companion tools and aims to provide a clean, maintainable codebase for learning and experimentation.
 
 ## Roadmap
 
 - Improve UI/UX
-- Add multiplayer support
 - Add save/load improvements
 - Refactor game logic into reusable modules
 - Add tests
