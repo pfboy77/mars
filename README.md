@@ -8,11 +8,11 @@ Mars is a fan-made strategy board game web application inspired by Terraforming 
 
 ## Features
 
-- Turn-based resource management
-- Player resource tracking
+- Single-player resource management
 - Terraform Rating tracking
+- Resource production phase
 - Undo / redo support
-- Local development API server
+- Browser localStorage persistence
 - Responsive web UI
 
 ## Tech Stack
@@ -27,22 +27,8 @@ Mars is a fan-made strategy board game web application inspired by Terraforming 
 Install dependencies:
 
 ```bash
+
 npm install
-```
-
-Start the local API server:
-
-```bash
-npm run api
-```
-
-Start the app:
-
-```bash
-npm start
-```
-
-Open http://localhost:3000 in your browser.
 
 ## Environment Variables
 
