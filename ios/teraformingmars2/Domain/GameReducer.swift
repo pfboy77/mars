@@ -104,3 +104,10 @@ func popRedo(from stack: inout [GameSnapshot]) -> GameState? {
     guard let snapshot = stack.popLast() else { return nil }
     return restore(from: snapshot, version: 1)
 }
+
+// MARK: - Migration
+
+func migrateGameState(from data: Data, to targetVersion: Int) -> Data? {
+     // Version 1 用: 既存データがあればそのまま返す
+    return data
+}

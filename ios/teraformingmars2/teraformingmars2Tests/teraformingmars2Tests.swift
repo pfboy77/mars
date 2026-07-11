@@ -151,6 +151,7 @@ struct GameReducerTests {
     }
 }
 
+
 struct ViewModelTests {
     @Test func viewModelInitializesFromDefaults() {
         let defaults = UserDefaults.standard
@@ -175,4 +176,20 @@ struct ViewModelTests {
         // Clean up
         defaults.removeObject(forKey: "GameStateKey")
     }
+
+    @Test func saveAndRestoreVersion() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "GameStateKey")
+        let vm = GameViewModel()
+        vm.savePersistentState()
+        let data = defaults.data(forKey: "GameStateKey")
+        let state = try! JSONDecoder().decode(GameState.self, from: data!)
+         #expect(state.version == 1)
+    }
+
+    @Test func initialStateVersionIsOne() {
+        let state = createInitialState()
+         #expect(state.version == 1)
+    }
+
 }

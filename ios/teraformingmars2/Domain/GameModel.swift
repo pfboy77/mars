@@ -11,7 +11,8 @@ struct Resource: Identifiable, Codable, Equatable, Hashable {
     var isEnergy: Bool
     var isHeat: Bool
 
-    static let initialResources: [Resource] = [
+    static var initialResources: [Resource] {
+         [
         Resource(id: UUID(), name: "MC", amount: 20, production: 0, isMegaCredit: true, isEnergy: false, isHeat: false),
         Resource(id: UUID(), name: "Steel", amount: 5, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
         Resource(id: UUID(), name: "Titanium", amount: 3, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
@@ -19,6 +20,7 @@ struct Resource: Identifiable, Codable, Equatable, Hashable {
         Resource(id: UUID(), name: "Energy", amount: 2, production: 1, isMegaCredit: false, isEnergy: true, isHeat: false),
         Resource(id: UUID(), name: "Heat", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: true),
     ]
+    }
 
     init(id: UUID = UUID(), name: String, amount: Int, production: Int, isMegaCredit: Bool = false, isEnergy: Bool = false, isHeat: Bool = false) {
         self.id = id
