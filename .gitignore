@@ -1,0 +1,10 @@
+# iOS Xcode user data
+ios/**/*.xcuserdata/
+ios/**/*.xcuserdata/*
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+*.local

@@ -1,0 +1,106 @@
+// Pure game logic — no UI dependencies
+
+func createInitialState() -> GameState {
+    GameState.initial
+}
+
+func snapshot(_ state: GameState) -> GameSnapshot {
+    GameSnapshot(resources: state.resources, tr: state.tr)
+}
+
+func restore(from snapshot: GameSnapshot, version: Int) -> GameState {
+    GameState(version: version, resources: snapshot.resources, tr: snapshot.tr)
+}
+
+// MARK: - Actions
+
+// Add amount to a resource by name
+func applyAdd(state: GameState, resourceName: String, delta: Int) -> GameState? {
+    guard delta > 0 else { return nil }
+    var resources = state.resources
+    guard let index = resources.firstIndex(where: { $0.name == resourceName }) else { return nil }
+    resources[index].amount += delta
+    return GameState(version: state.version, resources: resources, tr: state.tr)
+}
+
+// Subtract amount from a resource by name
+func applySubtract(state: GameState, resourceName: String, delta: Int) -> GameState? {
+    guard delta > 0 else { return nil }
+    var resources = state.resources
+    guard let index = resources.firstIndex(where: { $0.name == resourceName }) else { return nil }
+    let newAmount = max(0, resources[index].amount - delta)
+    resources[index].amount = newAmount
+    return GameState(version: state.version, resources: resources, tr: state.tr)
+}
+
+// Production phase
+func applyProduction(state: GameState) -> GameState {
+    var resources = state.resources
+
+    // Transfer Energy → Heat
+    if let energyIndex = resources.firstIndex(where: { $0.isEnergy }),
+       let heatIndex = resources.firstIndex(where: { $0.isHeat }) {
+        let energyAmount = resources[energyIndex].amount
+        resources[heatIndex].amount += energyAmount
+        resources[energyIndex].amount = 0
+    }
+
+    // Production + MC based on TR
+    for i in 0..<resources.count {
+        let r = resources[i]
+        let productionGain = r.production + (r.isMegaCredit ? state.tr : 0)
+        resources[i].amount += productionGain
+    }
+
+    return GameState(version: state.version, resources: resources, tr: state.tr)
+}
+
+// Reset all resources to 0, TR to 20
+func applyReset(state: GameState) -> GameState {
+    let zeroResources = state.resources.map {
+        Resource(id: $0.id, name: $0.name, amount: 0, production: $0.production,
+                 isMegaCredit: $0.isMegaCredit, isEnergy: $0.isEnergy, isHeat: $0.isHeat)
+    }
+    return GameState(version: state.version, resources: zeroResources, tr: 20)
+}
+
+// Increment TR
+func applyIncrementTR(state: GameState) -> GameState {
+    let newTR = min(state.tr + 1, 100)
+    return GameState(version: state.version, resources: state.resources, tr: newTR)
+}
+
+// Decrement TR
+func applyDecrementTR(state: GameState) -> GameState {
+    let newTR = max(state.tr - 1, 0)
+    return GameState(version: state.version, resources: state.resources, tr: newTR)
+}
+
+// Update production for a resource
+func applyUpdateProduction(state: GameState, resourceName: String, newProduction: Int) -> GameState? {
+    var resources = state.resources
+    guard let index = resources.firstIndex(where: { $0.name == resourceName }) else { return nil }
+    let minProd = resources[index].isMegaCredit ? -5 : 0
+    let clamped = max(minProd, min(newProduction, 20))
+    resources[index].production = clamped
+    return GameState(version: state.version, resources: resources, tr: state.tr)
+}
+
+// MARK: - Undo/Redo
+
+func pushSnapshot(to stack: inout [GameSnapshot], state: GameState) -> [GameSnapshot] {
+    var stack = stack
+    stack.append(snapshot(state))
+    if stack.count > 20 { stack.removeFirst() }
+    return stack
+}
+
+func popUndo(from stack: inout [GameSnapshot]) -> GameState? {
+    guard let snapshot = stack.popLast() else { return nil }
+    return restore(from: snapshot, version: 1)
+}
+
+func popRedo(from stack: inout [GameSnapshot]) -> GameState? {
+    guard let snapshot = stack.popLast() else { return nil }
+    return restore(from: snapshot, version: 1)
+}

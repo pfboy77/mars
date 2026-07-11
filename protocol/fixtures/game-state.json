@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "resources": [
+    { "id": "MC", "name": "MC", "amount": 20, "production": 0, "isMegaCredit": true },
+    { "id": "STEEL", "name": "Steel", "amount": 5, "production": 0, "isSteel": true },
+    { "id": "TITANIUM", "name": "Titanium", "amount": 3, "production": 0, "isTitanium": true },
+    { "id": "PLANTS", "name": "Plants", "amount": 4, "production": 2 },
+    { "id": "ENERGY", "name": "Energy", "amount": 2, "production": 1, "isEnergy": true },
+    { "id": "HEAT", "name": "Heat", "amount": 0, "production": 0, "isHeat": true }
+  ],
+  "tr": 20
+}
