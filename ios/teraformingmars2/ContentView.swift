@@ -32,7 +32,7 @@ class GameViewModel {
         }
     }
 
-    func applyAdd(resourceNamed name: String, delta: Int) {
+    func addResource(resourceNamed name: String, delta: Int) {
         saveState()
         if let newState = applyAdd(state: GameState(version: gameVersion, resources: resources, tr: tr),
                                    resourceName: name, delta: delta) {
@@ -42,7 +42,7 @@ class GameViewModel {
         }
     }
 
-    func applySubtract(resourceNamed name: String, delta: Int) {
+    func subtractResource(resourceNamed name: String, delta: Int) {
         saveState()
         if let newState = applySubtract(state: GameState(version: gameVersion, resources: resources, tr: tr),
                                         resourceName: name, delta: delta) {
@@ -52,7 +52,7 @@ class GameViewModel {
         }
     }
 
-    func applyProduction() {
+    func executeProduction() {
         saveState()
         let newState = applyProduction(state: GameState(version: gameVersion, resources: resources, tr: tr))
         resources = newState.resources
@@ -60,7 +60,7 @@ class GameViewModel {
         savePersistentState()
     }
 
-    func applyReset() {
+    func resetGame() {
         saveState()
         let newState = applyReset(state: GameState(version: gameVersion, resources: resources, tr: tr))
         resources = newState.resources
@@ -178,7 +178,7 @@ struct ContentView: View {
                 }
 
                 Button("リセット") {
-                    viewModel.applyReset()
+                    viewModel.resetGame()
                 }
                 .font(.headline)
                 .padding(6)
@@ -188,7 +188,7 @@ struct ContentView: View {
                 .accessibilityLabel("Reset all resources")
 
                 Button("▶︎ 産出") {
-                    viewModel.applyProduction()
+                    viewModel.executeProduction()
                 }
                 .font(.headline)
                 .padding(6)
@@ -202,7 +202,7 @@ struct ContentView: View {
             // Resources Grid
             let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(viewModel.$resources) { $resource in
+                ForEach(viewModel.resources) { resource in
                     VStack(spacing: 4) {
                         Text(resource.name)
                             .font(.headline)
@@ -231,7 +231,7 @@ struct ContentView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
 
                             Button("＋") {
-                                viewModel.applyAdd(resourceNamed: resource.name,
+                                viewModel.addResource(resourceNamed: resource.name,
                                                    delta: viewModel.deltaValues[resource.id] ?? 0)
                                 viewModel.setDelta(uuid: resource.id, value: 0)
                             }
@@ -240,7 +240,7 @@ struct ContentView: View {
                             .accessibilityLabel("Add to \(resource.name)")
 
                             Button("−") {
-                                viewModel.applySubtract(resourceNamed: resource.name,
+                                viewModel.subtractResource(resourceNamed: resource.name,
                                                         delta: viewModel.deltaValues[resource.id] ?? 0)
                                 viewModel.setDelta(uuid: resource.id, value: 0)
                             }
@@ -251,12 +251,10 @@ struct ContentView: View {
 
                         Stepper("産出: \(resource.production)",
                                 onIncrement: {
-                                    viewModel.saveState()
                                     viewModel.updateProduction(for: resource.name,
                                                                production: resource.production + 1)
                                 },
                                 onDecrement: {
-                                    viewModel.saveState()
                                     viewModel.updateProduction(for: resource.name,
                                                                production: resource.production - 1)
                                 })

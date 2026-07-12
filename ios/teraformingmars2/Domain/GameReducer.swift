@@ -1,4 +1,4 @@
-// Pure game logic — no UI dependencies
+import Foundation
 
 func createInitialState() -> GameState {
     GameState.initial
@@ -58,7 +58,7 @@ func applyProduction(state: GameState) -> GameState {
 // Reset all resources to 0, TR to 20
 func applyReset(state: GameState) -> GameState {
     let zeroResources = state.resources.map {
-        Resource(id: $0.id, name: $0.name, amount: 0, production: $0.production,
+        Resource(id: $0.id, name: $0.name, amount: 0, production: 0,
                  isMegaCredit: $0.isMegaCredit, isEnergy: $0.isEnergy, isHeat: $0.isHeat)
     }
     return GameState(version: state.version, resources: zeroResources, tr: 20)

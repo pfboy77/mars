@@ -13,11 +13,11 @@ struct Resource: Identifiable, Codable, Equatable, Hashable {
 
     static var initialResources: [Resource] {
          [
-        Resource(id: UUID(), name: "MC", amount: 20, production: 0, isMegaCredit: true, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Steel", amount: 5, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Titanium", amount: 3, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Plants", amount: 4, production: 2, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Energy", amount: 2, production: 1, isMegaCredit: false, isEnergy: true, isHeat: false),
+        Resource(id: UUID(), name: "MC", amount: 0, production: 0, isMegaCredit: true, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Steel", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Titanium", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Plants", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Energy", amount: 0, production: 0, isMegaCredit: false, isEnergy: true, isHeat: false),
         Resource(id: UUID(), name: "Heat", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: true),
     ]
     }
