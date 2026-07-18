@@ -61,7 +61,7 @@ const ResourceCard: React.FC<Props> = ({
         <button
           onClick={() =>
             updateProduction(
-              Math.max(resource.production - 1, resource.isMegaCredit ? -10 : 0)
+              Math.max(resource.production - 1, resource.isMegaCredit ? -5 : 0)
             )
           }
           style={{ ...buttonStyle, marginRight: 4 }}
@@ -72,7 +72,7 @@ const ResourceCard: React.FC<Props> = ({
         <button
           onClick={() =>
             updateProduction(
-              Math.min(resource.production + 1, resource.isMegaCredit ? 30 : 20)
+              Math.min(resource.production + 1, 20)
             )
           }
           style={{ ...buttonStyle, marginLeft: 4 }}

@@ -108,6 +108,14 @@ func popRedo(from stack: inout [GameSnapshot]) -> GameState? {
 // MARK: - Migration
 
 func migrateGameState(from data: Data, to targetVersion: Int) -> Data? {
-     // Version 1 用: 既存データがあればそのまま返す
-    return data
+    guard targetVersion == 1 else { return nil }
+
+    let decoder = JSONDecoder()
+    guard var state = try? decoder.decode(GameState.self, from: data),
+          state.version <= targetVersion else {
+        return nil
+    }
+
+    state.version = targetVersion
+    return try? JSONEncoder().encode(state)
 }

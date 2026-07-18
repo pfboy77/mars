@@ -1,0 +1,12 @@
+{
+    "type": "actionRejected",
+    "protocolVersion": "v1",
+    "timestamp": "2026-07-13T12:00:06.000Z",
+    "actionId": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+    "errors": [
+        {
+            "code": "STALE_REVISION",
+            "message": "Expected revision 3 but current is 5. Please use the latest state."
+        }
+    ]
+}

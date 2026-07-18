@@ -7,4 +7,5 @@ ios/**/*.xcuserdata/*
 
 # Node
 node_modules/
+build/
 *.local

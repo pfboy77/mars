@@ -15,7 +15,8 @@ class GameViewModel {
 
     init() {
         if let data = UserDefaults.standard.data(forKey: gameStateKey),
-           let state = try? JSONDecoder().decode(GameState.self, from: data) {
+           let migratedData = migrateGameState(from: data, to: gameVersion),
+           let state = try? JSONDecoder().decode(GameState.self, from: migratedData) {
             self.resources = state.resources
             self.tr = state.tr
         } else {
@@ -33,6 +34,7 @@ class GameViewModel {
     }
 
     func addResource(resourceNamed name: String, delta: Int) {
+        guard delta > 0 else { return }
         saveState()
         if let newState = applyAdd(state: GameState(version: gameVersion, resources: resources, tr: tr),
                                    resourceName: name, delta: delta) {
@@ -43,6 +45,7 @@ class GameViewModel {
     }
 
     func subtractResource(resourceNamed name: String, delta: Int) {
+        guard delta > 0 else { return }
         saveState()
         if let newState = applySubtract(state: GameState(version: gameVersion, resources: resources, tr: tr),
                                         resourceName: name, delta: delta) {
@@ -69,9 +72,14 @@ class GameViewModel {
     }
 
     func updateProduction(for name: String, production: Int) {
+        guard let resource = resources.first(where: { $0.name == name }) else { return }
+        let minimum = resource.isMegaCredit ? -5 : 0
+        let clampedProduction = max(minimum, min(production, 20))
+        guard clampedProduction != resource.production else { return }
+
         saveState()
         if let newState = applyUpdateProduction(state: GameState(version: gameVersion, resources: resources, tr: tr),
-                                                resourceName: name, newProduction: production) {
+                                                resourceName: name, newProduction: clampedProduction) {
             resources = newState.resources
             tr = newState.tr
             savePersistentState()
@@ -79,19 +87,21 @@ class GameViewModel {
     }
 
     func incrementTR() {
-        let newTR = min(tr + 1, 100)
-        if newTR != tr {
-            tr = newTR
-            savePersistentState()
-        }
+        let currentState = GameState(version: gameVersion, resources: resources, tr: tr)
+        let newState = applyIncrementTR(state: currentState)
+        guard newState.tr != tr else { return }
+        saveState()
+        tr = newState.tr
+        savePersistentState()
     }
 
     func decrementTR() {
-        let newTR = max(tr - 1, 0)
-        if newTR != tr {
-            tr = newTR
-            savePersistentState()
-        }
+        let currentState = GameState(version: gameVersion, resources: resources, tr: tr)
+        let newState = applyDecrementTR(state: currentState)
+        guard newState.tr != tr else { return }
+        saveState()
+        tr = newState.tr
+        savePersistentState()
     }
 
     func undo() {
@@ -106,6 +116,9 @@ class GameViewModel {
     func redo() {
         guard let next = redoStack.popLast() else { return }
         undoStack.append(snapshot(GameState(version: gameVersion, resources: resources, tr: tr)))
+        if undoStack.count > 20 {
+            undoStack.removeFirst()
+        }
         let restored = restore(from: next, version: gameVersion)
         resources = restored.resources
         tr = restored.tr

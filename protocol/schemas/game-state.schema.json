@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "game-state.schema.json",
+  "title": "GameState",
+  "description": "The shared game state between iOS and Web clients. Used as the server's authoritative state and as the stateSnapshot in server messages.",
+  "type": "object",
+  "required": ["version", "resources", "tr"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Internal state version for persistence migration"
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/definitions/resource"
+      }
+    },
+    "tr": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Terraform Rating (0–100)"
+    }
+  },
+  "definitions": {
+    "resource": {
+      "type": "object",
+      "required": ["id", "name", "amount", "production"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Resource instance identifier (UUID)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Human-readable resource name"
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Current resource amount"
+        },
+        "production": {
+          "type": "integer",
+          "minimum": -5,
+          "maximum": 20,
+          "description": "Resource production amount. Negative values are only valid for Mega Credit."
+        },
+        "isMegaCredit": {
+          "type": "boolean",
+          "default": false
+        },
+        "isEnergy": {
+          "type": "boolean",
+          "default": false
+        },
+        "isHeat": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

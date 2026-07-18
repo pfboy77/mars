@@ -1,12 +1,60 @@
 {
   "version": 1,
   "resources": [
-    { "id": "MC", "name": "MC", "amount": 20, "production": 0, "isMegaCredit": true },
-    { "id": "STEEL", "name": "Steel", "amount": 5, "production": 0, "isSteel": true },
-    { "id": "TITANIUM", "name": "Titanium", "amount": 3, "production": 0, "isTitanium": true },
-    { "id": "PLANTS", "name": "Plants", "amount": 4, "production": 2 },
-    { "id": "ENERGY", "name": "Energy", "amount": 2, "production": 1, "isEnergy": true },
-    { "id": "HEAT", "name": "Heat", "amount": 0, "production": 0, "isHeat": true }
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "MC",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": true,
+      "isEnergy": false,
+      "isHeat": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Steel",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": false,
+      "isEnergy": false,
+      "isHeat": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "Titanium",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": false,
+      "isEnergy": false,
+      "isHeat": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "Plants",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": false,
+      "isEnergy": false,
+      "isHeat": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "Energy",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": false,
+      "isEnergy": true,
+      "isHeat": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "Heat",
+      "amount": 0,
+      "production": 0,
+      "isMegaCredit": false,
+      "isEnergy": false,
+      "isHeat": true
+    }
   ],
   "tr": 20
 }

@@ -1,8 +1,11 @@
 import XCTest
 
 final class teraformingmars2UITests: XCTestCase {
+    private var app: XCUIApplication!
+
     override func setUpWithError() throws {
         continueAfterFailure = false
+        app = XCUIApplication()
         app.launchArguments = ["-UITesting"]
         app.launch()
     }
@@ -11,43 +14,20 @@ final class teraformingmars2UITests: XCTestCase {
         app.terminate()
     }
 
-    @Test func appLaunchesSuccessfully() {
-        XCTAssertTrue(app.staticTexts.matching(identifier: "Terraform Rating").count > 0,
-                       "App should display TR text")
+    func testAppLaunchesSuccessfully() {
+        XCTAssertTrue(app.staticTexts["Terraform Rating 20"].waitForExistence(timeout: 2),
+                      "App should display TR text")
     }
 
-    @Test func resourceCardsAreDisplayed() {
+    func testResourceCardsAreDisplayed() {
         let mcText = app.staticTexts["MC"]
         XCTAssertTrue(mcText.exists, "MC resource card should be displayed")
     }
 
-    @Test func resourceAmountUpdatesOnPlusTap() {
-        // Tap the + button on a resource card
-        let resourceCard = app.staticTexts["Steel"].firstMatch
-        let plusButton = resourceCard.superscript.buttons["Add to Steel"]
-        plusButton.click()
-        XCTAssertTrue(true)
+    func testTRUpdatesAndCanBeUndone() {
+        app.buttons["Increase TR"].tap()
+        XCTAssertTrue(app.staticTexts["Terraform Rating 21"].waitForExistence(timeout: 1))
+        app.buttons["Undo"].tap()
+        XCTAssertTrue(app.staticTexts["Terraform Rating 20"].waitForExistence(timeout: 1))
     }
-
-    @Test func resourceAmountUpdatesOnMinusTap() {
-        let resourceCard = app.staticTexts["MC"].firstMatch
-        let minusButton = resourceCard.superscript.buttons["Subtract from MC"]
-        minusButton.click()
-        XCTAssertTrue(true)
-    }
-}
-
-extension UIView {
-    var firstMatch: UIView { self }
-}
-
-extension XCUIElement {
-    func click() {
-        guard self.exists else { return }
-        self.tap()
-    }
-}
-
-extension XCUIElementQuery {
-    var firstMatch: XCUIElement { self.firstMatch }
 }

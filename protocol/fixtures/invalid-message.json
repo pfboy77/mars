@@ -1,0 +1,11 @@
+{
+    "type": "error",
+    "protocolVersion": "v1",
+    "timestamp": "2026-07-13T12:00:07.000Z",
+    "errors": [
+        {
+            "code": "INVALID_MESSAGE",
+            "message": "Message validation failed: 'type' is not one of the supported message types."
+        }
+    ]
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "session-state.schema.json",
+  "title": "SessionState",
+  "description": "The multiplayer game session state on the server. Contains players, revision, and session metadata.",
+  "type": "object",
+  "required": [
+    "protocolVersion",
+    "sessionId",
+    "joinCode",
+    "revision",
+    "createdAt",
+    "updatedAt",
+    "hostClientId",
+    "players"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "protocolVersion": {
+      "type": "string",
+      "const": "v1",
+      "description": "Protocol version string"
+    },
+    "sessionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Unique session identifier (UUID v4)"
+    },
+    "joinCode": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{6}$",
+      "description": "6-character uppercase join code for clients"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonically increasing revision number"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Session creation timestamp (ISO 8601)"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    },
+    "hostClientId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Client ID of the session host"
+    },
+    "players": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/definitions/playerState"
+      }
+    }
+  },
+  "definitions": {
+    "playerState": {
+      "type": "object",
+      "required": ["playerId", "clientId", "displayName", "connected", "lastSeenAt", "tr", "resources"],
+      "additionalProperties": false,
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Internal player identifier"
+        },
+        "clientId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Client identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Player's display name"
+        },
+        "connected": {
+          "type": "boolean",
+          "description": "Connection status"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last seen timestamp (ISO 8601)"
+        },
+        "tr": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Player's Terraform Rating"
+        },
+        "resources": {
+          "$ref": "#/definitions/resourcesMap"
+        }
+      }
+    },
+    "resourcesMap": {
+      "type": "object",
+      "required": ["MC", "Steel", "Titanium", "Plants", "Energy", "Heat"],
+      "additionalProperties": false,
+      "properties": {
+        "MC": { "$ref": "#/definitions/megaCreditValue" },
+        "Steel": { "$ref": "#/definitions/resourceValue" },
+        "Titanium": { "$ref": "#/definitions/resourceValue" },
+        "Plants": { "$ref": "#/definitions/resourceValue" },
+        "Energy": { "$ref": "#/definitions/resourceValue" },
+        "Heat": { "$ref": "#/definitions/resourceValue" }
+      },
+      "description": "Map of resource IDs to resource values"
+    },
+    "megaCreditValue": {
+      "type": "object",
+      "required": ["amount", "production"],
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "production": {
+          "type": "integer",
+          "minimum": -5,
+          "maximum": 20
+        }
+      }
+    },
+    "resourceValue": {
+      "type": "object",
+      "required": ["amount", "production"],
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Current resource amount"
+        },
+        "production": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Resource production amount"
+        }
+      }
+    }
+  }
+}

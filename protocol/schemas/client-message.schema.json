@@ -1,0 +1,465 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "client-message.schema.json",
+    "title": "ClientMessage",
+    "description": "Messages sent from client (iOS/Web) to the local multiplayer server.",
+    "oneOf": [
+        {
+            "$ref": "#/definitions/createSessionMessage"
+        },
+        {
+            "$ref": "#/definitions/joinSessionMessage"
+        },
+        {
+            "$ref": "#/definitions/leaveSessionMessage"
+        },
+        {
+            "$ref": "#/definitions/resumeSessionMessage"
+        },
+        {
+            "$ref": "#/definitions/updateResourceMessage"
+        },
+        {
+            "$ref": "#/definitions/updateProductionMessage"
+        },
+        {
+            "$ref": "#/definitions/updateTRMessage"
+        },
+        {
+            "$ref": "#/definitions/runProductionMessage"
+        },
+        {
+            "$ref": "#/definitions/resetPlayerMessage"
+        },
+        {
+            "$ref": "#/definitions/pingMessage"
+        }
+    ],
+    "definitions": {
+        "pingMessage": {
+            "allOf": [
+                {
+                    "type": "object",
+                    "required": [
+                        "type",
+                        "protocolVersion",
+                        "requestId"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "ping"
+                        },
+                        "protocolVersion": {
+                            "const": "v1"
+                        },
+                        "requestId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        }
+                    }
+                }
+            ]
+        },
+        "createSessionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "createSession"
+                        }
+                    }
+                }
+            ]
+        },
+        "joinSessionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "sessionId",
+                        "joinCode",
+                        "clientId",
+                        "displayName"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "joinSession"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "joinCode": {
+                            "type": "string",
+                            "pattern": "^[A-Z0-9]{6}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "displayName": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20
+                        }
+                    }
+                }
+            ]
+        },
+        "leaveSessionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "sessionId",
+                        "clientId"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "leaveSession"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        }
+                    }
+                }
+            ]
+        },
+        "resumeSessionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "sessionId",
+                        "clientId"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "resumeSession"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        }
+                    }
+                }
+            ]
+        },
+        "updateResourceMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "expectedRevision",
+                        "resourceId",
+                        "amount",
+                        "operation"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "updateResource"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "resourceId": {
+                            "type": "string",
+                            "enum": [
+                                "MC",
+                                "Steel",
+                                "Titanium",
+                                "Plants",
+                                "Energy",
+                                "Heat"
+                            ]
+                        },
+                        "amount": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "operation": {
+                            "type": "string",
+                            "enum": [
+                                "set",
+                                "add"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "updateProductionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "expectedRevision",
+                        "resourceId",
+                        "production"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "updateProduction"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "resourceId": {
+                            "type": "string",
+                            "enum": [
+                                "MC",
+                                "Steel",
+                                "Titanium",
+                                "Plants",
+                                "Energy",
+                                "Heat"
+                            ]
+                        },
+                        "production": {
+                            "type": "integer",
+                            "minimum": -5,
+                            "maximum": 20
+                        }
+                    }
+                }
+            ]
+        },
+        "updateTRMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "expectedRevision",
+                        "tr"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "updateTR"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "tr": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                        }
+                    }
+                }
+            ]
+        },
+        "runProductionMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "expectedRevision"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "runProduction"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    }
+                }
+            ]
+        },
+        "resetPlayerMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_baseClient"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "expectedRevision"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "resetPlayer"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "clientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    }
+                }
+            ]
+        },
+        "_baseClient": {
+            "type": "object",
+            "required": [
+                "type",
+                "protocolVersion",
+                "requestId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "protocolVersion": {
+                    "const": "v1"
+                },
+                "requestId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "sessionId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "clientId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "actionId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "resourceId": {
+                    "type": "string",
+                    "enum": [
+                        "MC",
+                        "Steel",
+                        "Titanium",
+                        "Plants",
+                        "Energy",
+                        "Heat"
+                    ]
+                },
+                "amount": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "set",
+                        "add"
+                    ]
+                },
+                "joinCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{6}$"
+                },
+                "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                },
+                "production": {
+                    "type": "integer",
+                    "minimum": -5,
+                    "maximum": 20
+                },
+                "tr": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            }
+        }
+    }
+}

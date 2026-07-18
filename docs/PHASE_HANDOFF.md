@@ -61,7 +61,7 @@ git log --oneline
 | 項目 | 詳細 |
 |------|------|
 | **Domain層の分離** | `GameModel.swift` (データモデル) + `GameReducer.swift` (純粋関数) |
-| **初期値の修正** | Web版と同じに統一 (MC:20, Steel:5, Titanium:3, Plants:4, Energy:2, Heat:0) |
+| **初期値の統一** | Web版・iOS版ともにTR:20、全資源量・全産出量:0 |
 | **テスト追加** | 18テストケース (GameReducer 16 + ViewModel 2) |
 | **iOSアーキテクチャ** | `@Observable` ViewModel + accessibilityLabel |
 | **プロトコル定義** | `protocol/fixtures/game-state.json` + `protocol/schemas/PROTOCOL.md` |
@@ -91,9 +91,8 @@ git log --oneline
      - Web版ロジックと同一のJSON結果を生成
 
 3. **初期値はWeb版と統一**
-     - MC:20, Steel:5, Titanium:3, Plants:4, Energy:2, Heat:0
      - TR:20
-     - 以前のiOS版(全0)は修正済み
+     - MC、Steel、Titanium、Plants、Energy、Heatは量・産出量ともに0
 
 ---
 
@@ -115,11 +114,11 @@ git log --oneline
 ```swift
 static var initialResources: [Resource] {
      [
-        Resource(id: UUID(), name: "MC", amount: 20, production: 0, isMegaCredit: true, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Steel", amount: 5, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Titanium", amount: 3, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Plants", amount: 4, production: 2, isMegaCredit: false, isEnergy: false, isHeat: false),
-        Resource(id: UUID(), name: "Energy", amount: 2, production: 1, isMegaCredit: false, isEnergy: true, isHeat: false),
+        Resource(id: UUID(), name: "MC", amount: 0, production: 0, isMegaCredit: true, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Steel", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Titanium", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Plants", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: false),
+        Resource(id: UUID(), name: "Energy", amount: 0, production: 0, isMegaCredit: false, isEnergy: true, isHeat: false),
         Resource(id: UUID(), name: "Heat", amount: 0, production: 0, isMegaCredit: false, isEnergy: false, isHeat: true),
      ]
 }
@@ -244,7 +243,7 @@ UserDefaults (Persistence)
 | Xcode | 26.6 |
 | Swift | 6.3.3 |
 | iOS デプロイターゲット | 15.6 |
-| テスト対象 | 18.4 |
+| 最低対応バージョン | iOS 17.0 |
 | Device | iPhone + iPad |
 
 ---

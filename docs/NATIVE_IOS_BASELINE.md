@@ -65,11 +65,11 @@ interface GameState {
 ```json
 {
   "resources": [
-    { "name": "MC", "amount": 20, "production": 0, "isMegaCredit": true },
-    { "name": "Steel", "amount": 5, "production": 0 },
-    { "name": "Titanium", "amount": 3, "production": 0 },
-    { "name": "Plants", "amount": 4, "production": 2 },
-    { "name": "Energy", "amount": 2, "production": 1, "isEnergy": true },
+    { "name": "MC", "amount": 0, "production": 0, "isMegaCredit": true },
+    { "name": "Steel", "amount": 0, "production": 0 },
+    { "name": "Titanium", "amount": 0, "production": 0 },
+    { "name": "Plants", "amount": 0, "production": 0 },
+    { "name": "Energy", "amount": 0, "production": 0, "isEnergy": true },
     { "name": "Heat", "amount": 0, "production": 0, "isHeat": true }
   ],
   "tr": 20
@@ -128,7 +128,8 @@ teraformingmars/
 1. **Web版とiOS版は別プロジェクト** — 現在のiOS版(skeleton)はWeb版をリファクタリングするものではない
 2. **iOS版は0からのSwiftUI実装** が必要
 3. **Web版のゲームロジックをiOSに移植** する形になる
-4. **指示書のPhase 0 (調査) は完了**
+4. **現在の共通初期値** — TRは20、全資源量・全産出量は0
+5. **指示書のPhase 0 (調査) は完了**
 
 ---
 

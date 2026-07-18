@@ -43,13 +43,12 @@ red-planet-companion/
 ### iOS (ios/teraformingmars2/)
 - SwiftUI
 - Swift 5
-- iOS 15.6+
+- iOS 17.0+
 
 ## Getting Started
 
 ### Web
 ```bash
-cd src
 npm install
 npm start
 ```

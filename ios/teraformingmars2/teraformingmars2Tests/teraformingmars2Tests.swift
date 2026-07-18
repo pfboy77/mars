@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import teraformingmars2
 
@@ -7,17 +8,14 @@ struct GameReducerTests {
         #expect(state.version == 1)
         #expect(state.tr == 20)
         #expect(state.resources.count == 6)
-        #expect(state.resources[0].amount == 20) // MC
-        #expect(state.resources[1].amount == 5)  // Steel
-        #expect(state.resources[2].amount == 3)  // Titanium
-        #expect(state.resources[3].amount == 4)  // Plants
-        #expect(state.resources[4].amount == 2)  // Energy
-        #expect(state.resources[5].amount == 0)  // Heat
+        #expect(state.resources.allSatisfy { $0.amount == 0 })
+        #expect(state.resources.allSatisfy { $0.production == 0 })
     }
 
     @Test func resourceEquatable() {
-        let r1 = Resource(id: UUID(), name: "Test", amount: 10, production: 1, isMegaCredit: true, isEnergy: false, isHeat: false)
-        let r2 = Resource(id: UUID(), name: "Test", amount: 10, production: 1, isMegaCredit: true, isEnergy: false, isHeat: false)
+        let id = UUID()
+        let r1 = Resource(id: id, name: "Test", amount: 10, production: 1, isMegaCredit: true, isEnergy: false, isHeat: false)
+        let r2 = Resource(id: id, name: "Test", amount: 10, production: 1, isMegaCredit: true, isEnergy: false, isHeat: false)
         #expect(r1 == r2)
     }
 
@@ -26,7 +24,7 @@ struct GameReducerTests {
         if let newState = applyAdd(state: state, resourceName: "Steel", delta: 5) {
             state = newState
             let steel = state.resources.first { $0.name == "Steel" }!
-            #expect(steel.amount == 10)
+            #expect(steel.amount == 5)
         }
     }
 
@@ -35,7 +33,7 @@ struct GameReducerTests {
         if let newState = applySubtract(state: state, resourceName: "Plants", delta: 2) {
             state = newState
             let plants = state.resources.first { $0.name == "Plants" }!
-            #expect(plants.amount == 2)
+            #expect(plants.amount == 0)
         }
     }
 
@@ -50,7 +48,7 @@ struct GameReducerTests {
 
     @Test func productionTransfersEnergyToHeat() {
         var state = createInitialState()
-        // Energy=2, Heat=0
+        state.resources[state.resources.firstIndex(where: { $0.isEnergy })!].amount = 2
         let newState = applyProduction(state: state)
         let energy = newState.resources.first { $0.isEnergy }!
         let heat = newState.resources.first { $0.isHeat }!
@@ -59,17 +57,17 @@ struct GameReducerTests {
     }
 
     @Test func productionAddsProduction() {
-        var state = createInitialState()
+        let state = createInitialState()
         let newState = applyProduction(state: state)
         let steel = newState.resources.first { $0.name == "Steel" }!
-        #expect(steel.amount == 5) // Steel production=0, not MC so no TR
+        #expect(steel.amount == 0) // Steel production=0, not MC so no TR
     }
 
     @Test func productionAddsTRToMC() {
-        var state = createInitialState()
+        let state = createInitialState()
         let newState = applyProduction(state: state)
         let mc = newState.resources.first { $0.isMegaCredit }!
-        #expect(mc.amount == 20 + 20) // MC=20, production=0, TR=20
+        #expect(mc.amount == 20) // MC=0, production=0, TR=20
     }
 
     @Test func resetSetsAllToZero() {
@@ -87,13 +85,13 @@ struct GameReducerTests {
     }
 
     @Test func incrementTR() {
-        var state = createInitialState()
+        let state = createInitialState()
         let newState = applyIncrementTR(state: state)
         #expect(newState.tr == 21)
     }
 
     @Test func decrementTR() {
-        var state = createInitialState()
+        let state = createInitialState()
         let newState = applyDecrementTR(state: state)
         #expect(newState.tr == 19)
     }
@@ -114,7 +112,7 @@ struct GameReducerTests {
     }
 
     @Test func updateProduction() {
-        var state = createInitialState()
+        let state = createInitialState()
         if let newState = applyUpdateProduction(state: state, resourceName: "Steel", newProduction: 5) {
             let steel = newState.resources.first { $0.name == "Steel" }!
             #expect(steel.production == 5)
@@ -124,7 +122,6 @@ struct GameReducerTests {
     @Test func undoRedoCycle() {
         var state = createInitialState()
         var undoStack: [GameSnapshot] = []
-        var redoStack: [GameSnapshot] = []
 
         // Snapshot current
         undoStack = pushSnapshot(to: &undoStack, state: state)
@@ -137,7 +134,7 @@ struct GameReducerTests {
         // Undo
         let restored = popUndo(from: &undoStack)
         #expect(restored != nil)
-        #expect(restored!.resources[0].amount == 20) // MC should be back to initial
+        #expect(restored!.resources[0].amount == 0) // MC should be back to initial
     }
 
     @Test func gameStateCodable() {
@@ -149,9 +146,24 @@ struct GameReducerTests {
         let decoded = try! decoder.decode(GameState.self, from: data)
         #expect(decoded == state)
     }
+
+    @Test func migrateVersionOneState() {
+        let state = createInitialState()
+        let data = try! JSONEncoder().encode(state)
+        let migrated = migrateGameState(from: data, to: 1)
+        #expect(migrated != nil)
+        let decoded = try! JSONDecoder().decode(GameState.self, from: migrated!)
+        #expect(decoded == state)
+    }
+
+    @Test func rejectsUnsupportedMigrationTarget() {
+        let data = try! JSONEncoder().encode(createInitialState())
+        #expect(migrateGameState(from: data, to: 2) == nil)
+    }
 }
 
 
+@Suite(.serialized)
 struct ViewModelTests {
     @Test func viewModelInitializesFromDefaults() {
         let defaults = UserDefaults.standard
@@ -159,6 +171,7 @@ struct ViewModelTests {
         let vm = GameViewModel()
         #expect(vm.tr == 20)
         #expect(vm.resources.count == 6)
+        defaults.removeObject(forKey: "GameStateKey")
     }
 
     @Test func viewModelSaveAndRestore() {
@@ -184,12 +197,28 @@ struct ViewModelTests {
         vm.savePersistentState()
         let data = defaults.data(forKey: "GameStateKey")
         let state = try! JSONDecoder().decode(GameState.self, from: data!)
-         #expect(state.version == 1)
+        #expect(state.version == 1)
+        defaults.removeObject(forKey: "GameStateKey")
     }
 
     @Test func initialStateVersionIsOne() {
         let state = createInitialState()
-         #expect(state.version == 1)
+        #expect(state.version == 1)
+    }
+
+    @Test func trChangesCanBeUndoneAndRedone() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "GameStateKey")
+        let vm = GameViewModel()
+
+        vm.incrementTR()
+        #expect(vm.tr == 21)
+        vm.undo()
+        #expect(vm.tr == 20)
+        vm.redo()
+        #expect(vm.tr == 21)
+
+        defaults.removeObject(forKey: "GameStateKey")
     }
 
 }

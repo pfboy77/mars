@@ -1,0 +1,376 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "server-message.schema.json",
+    "title": "ServerMessage",
+    "description": "Messages sent from the server to clients (iOS/Web).",
+    "oneOf": [
+        {
+            "$ref": "#/definitions/sessionCreatedMessage"
+        },
+        {
+            "$ref": "#/definitions/sessionJoinedMessage"
+        },
+        {
+            "$ref": "#/definitions/stateSnapshotMessage"
+        },
+        {
+            "$ref": "#/definitions/actionAcceptedMessage"
+        },
+        {
+            "$ref": "#/definitions/actionRejectedMessage"
+        },
+        {
+            "$ref": "#/definitions/playerJoinedMessage"
+        },
+        {
+            "$ref": "#/definitions/playerLeftMessage"
+        },
+        {
+            "$ref": "#/definitions/connectionStateMessage"
+        },
+        {
+            "$ref": "#/definitions/pongMessage"
+        },
+        {
+            "$ref": "#/definitions/errorMessage"
+        }
+    ],
+    "definitions": {
+        "_common": {
+            "type": "object",
+            "required": [
+                "type",
+                "protocolVersion",
+                "timestamp"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "protocolVersion": {
+                    "const": "v1"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }
+        },
+        "sessionCreatedMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "sessionId",
+                        "joinCode",
+                        "hostClientId",
+                        "sessionState"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "sessionCreated"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "joinCode": {
+                            "type": "string",
+                            "pattern": "^[A-Z0-9]{6}$"
+                        },
+                        "hostClientId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "sessionState": {
+                            "$ref": "session-state.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "sessionJoinedMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "sessionId",
+                        "playerId",
+                        "playerIndex"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "sessionJoined"
+                        },
+                        "sessionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "playerId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "playerIndex": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    }
+                }
+            ]
+        },
+        "stateSnapshotMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "revision",
+                        "sessionState"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "stateSnapshot"
+                        },
+                        "revision": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "sessionState": {
+                            "$ref": "session-state.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "actionAcceptedMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "revision",
+                        "sessionState"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "actionAccepted"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "revision": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "sessionState": {
+                            "$ref": "session-state.schema.json"
+                        }
+                    }
+                }
+            ]
+        },
+        "actionRejectedMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "actionId",
+                        "errors"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "actionRejected"
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "errors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/definitions/error"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "playerJoinedMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "playerId",
+                        "displayName",
+                        "playerCount"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "playerJoined"
+                        },
+                        "playerId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "displayName": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20
+                        },
+                        "playerCount": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                }
+            ]
+        },
+        "playerLeftMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "playerId",
+                        "displayName",
+                        "playerCount"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "playerLeft"
+                        },
+                        "playerId": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        },
+                        "displayName": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20
+                        },
+                        "playerCount": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    }
+                }
+            ]
+        },
+        "connectionStateMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "state"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "connectionState"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "connected",
+                                "reconnecting",
+                                "disconnected"
+                            ]
+                        },
+                        "message": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "pongMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "pong"
+                        }
+                    }
+                }
+            ]
+        },
+        "errorMessage": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/_common"
+                },
+                {
+                    "required": [
+                        "errors"
+                    ],
+                    "properties": {
+                        "type": {
+                            "const": "error"
+                        },
+                        "errors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/definitions/error"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "error": {
+            "type": "object",
+            "required": [
+                "code",
+                "message"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "enum": [
+                        "INVALID_MESSAGE",
+                        "UNSUPPORTED_PROTOCOL_VERSION",
+                        "SESSION_NOT_FOUND",
+                        "INVALID_JOIN_CODE",
+                        "PLAYER_NOT_FOUND",
+                        "DUPLICATE_ACTION",
+                        "STALE_REVISION",
+                        "INVALID_RESOURCE",
+                        "INVALID_AMOUNT",
+                        "INVALID_PRODUCTION",
+                        "INVALID_TR",
+                        "RATE_LIMITED",
+                        "INTERNAL_ERROR"
+                    ]
+                },
+                "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                }
+            }
+        }
+    }
+}

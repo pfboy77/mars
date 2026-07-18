@@ -9,7 +9,7 @@ final class teraformingmars2UITestsLaunchTests: XCTestCase {
         app.launch()
     }
 
-    @Test func launchSucceeds() {
+    func testLaunchSucceeds() {
         let window = app.windows.firstMatch
         XCTAssertTrue(window.exists, "Main window should exist")
     }

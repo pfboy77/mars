@@ -3,13 +3,12 @@ import ResourceCard from "./components/ResourceCard";
 import { Resource, GameState } from "./types";
 import React, { useState, useEffect } from "react";
 
-
 const initialResources: Resource[] = [
-  { id: uuidv4(), name: "MC", amount: 20, production: 0, isMegaCredit: true },
-  { id: uuidv4(), name: "Steel", amount: 5, production: 0 },
-  { id: uuidv4(), name: "Titanium", amount: 3, production: 0 },
-  { id: uuidv4(), name: "Plants", amount: 4, production: 2 },
-  { id: uuidv4(), name: "Energy", amount: 2, production: 1, isEnergy: true },
+  { id: uuidv4(), name: "MC", amount: 0, production: 0, isMegaCredit: true },
+  { id: uuidv4(), name: "Steel", amount: 0, production: 0 },
+  { id: uuidv4(), name: "Titanium", amount: 0, production: 0 },
+  { id: uuidv4(), name: "Plants", amount: 0, production: 0 },
+  { id: uuidv4(), name: "Energy", amount: 0, production: 0, isEnergy: true },
   { id: uuidv4(), name: "Heat", amount: 0, production: 0, isHeat: true }
 ];
 
@@ -21,17 +20,23 @@ const buttonStyle = {
   textAlign: "center" as const,
 };
 
-
 function App() {
   const savedData = localStorage.getItem("gameState");
-const parsed = savedData ? JSON.parse(savedData) : null;
+  let parsed: Partial<GameState> | null = null;
+  if (savedData) {
+    try {
+      parsed = JSON.parse(savedData);
+    } catch {
+      localStorage.removeItem("gameState");
+    }
+  }
 
-const [resources, setResources] = useState<Resource[]>(
-  parsed?.resources || initialResources
-);
-const [tr, setTr] = useState<number>(
-  parsed?.tr ?? 20
-);
+  const [resources, setResources] = useState<Resource[]>(
+    parsed?.resources || initialResources
+  );
+  const [tr, setTr] = useState<number>(
+    parsed?.tr ?? 20
+  );
 
   const [deltaValues, setDeltaValues] = useState<Record<string, number>>({});
   const [undoStack, setUndoStack] = useState<GameState[]>([]);
@@ -42,16 +47,21 @@ const [tr, setTr] = useState<number>(
     const data = JSON.stringify({ resources, tr });
     localStorage.setItem("gameState", data);
   }, [resources, tr]);
-  
+
+  const currentSnapshot = (): GameState => ({
+    resources: resources.map(resource => ({ ...resource })),
+    tr
+  });
 
   const saveState = () => {
-    setUndoStack([...undoStack, { resources: [...resources], tr }]);
+    setUndoStack(previous => [...previous.slice(-19), currentSnapshot()]);
     setRedoStack([]);
   };
 
   const handleAdd = (id: string) => {
-    saveState();
     const delta = deltaValues[id] || 0;
+    if (delta <= 0) return;
+    saveState();
     setResources(prev =>
       prev.map(r => r.id === id ? { ...r, amount: r.amount + delta } : r)
     );
@@ -61,6 +71,7 @@ const [tr, setTr] = useState<number>(
   const handleSubtract = (id: string) => {
     const resource = resources.find(r => r.id === id);
     const delta = deltaValues[id] || 0;
+    if (delta <= 0) return;
     if (resource && delta > resource.amount) {
       setError(`Cannot subtract more than ${resource.amount} ${resource.name}.`);
       setTimeout(() => setError(null), 2000);
@@ -75,7 +86,7 @@ const [tr, setTr] = useState<number>(
 
   const handleProduction = () => {
     saveState();
-    let newResources = [...resources];
+    let newResources = resources.map(resource => ({ ...resource }));
     const energy = newResources.find(r => r.isEnergy);
     const heat = newResources.find(r => r.isHeat);
     if (energy && heat) {
@@ -96,21 +107,39 @@ const [tr, setTr] = useState<number>(
   };
 
   const handleUndo = () => {
-    const last = undoStack.pop();
+    const last = undoStack[undoStack.length - 1];
     if (last) {
-      setRedoStack([...redoStack, { resources: [...resources], tr }]);
-      setResources(last.resources);
+      setUndoStack(undoStack.slice(0, -1));
+      setRedoStack(previous => [...previous.slice(-19), currentSnapshot()]);
+      setResources(last.resources.map(resource => ({ ...resource })));
       setTr(last.tr);
     }
   };
 
   const handleRedo = () => {
-    const next = redoStack.pop();
+    const next = redoStack[redoStack.length - 1];
     if (next) {
-      setUndoStack([...undoStack, { resources: [...resources], tr }]);
-      setResources(next.resources);
+      setRedoStack(redoStack.slice(0, -1));
+      setUndoStack(previous => [...previous.slice(-19), currentSnapshot()]);
+      setResources(next.resources.map(resource => ({ ...resource })));
       setTr(next.tr);
     }
+  };
+
+  const handleTRChange = (delta: number) => {
+    const nextTR = Math.max(0, Math.min(tr + delta, 100));
+    if (nextTR === tr) return;
+    saveState();
+    setTr(nextTR);
+  };
+
+  const handleProductionChange = (id: string, value: number) => {
+    const resource = resources.find(item => item.id === id);
+    if (!resource || resource.production === value) return;
+    saveState();
+    setResources(previous =>
+      previous.map(item => item.id === id ? { ...item, production: value } : item)
+    );
   };
 
   return (
@@ -130,14 +159,20 @@ const [tr, setTr] = useState<number>(
         <div style={{ display: "inline-flex", alignItems: "center", marginLeft: 8 }}>
           <span>TR:</span>
           <button
-  onClick={() => setTr(prev => Math.max(prev - 1, 0))}
-  style={{ ...buttonStyle, marginRight: 4 }}
->−</button>
-<span>{tr}</span>
-<button
-  onClick={() => setTr(prev => Math.min(prev + 1, 100))}
-  style={{ ...buttonStyle, marginLeft: 4 }}
->＋</button>
+            onClick={() => handleTRChange(-1)}
+            aria-label="Decrease TR"
+            style={{ ...buttonStyle, marginRight: 4 }}
+          >
+            −
+          </button>
+          <span>{tr}</span>
+          <button
+            onClick={() => handleTRChange(1)}
+            aria-label="Increase TR"
+            style={{ ...buttonStyle, marginLeft: 4 }}
+          >
+            ＋
+          </button>
         </div>
 
         <button onClick={handleProduction} style={{ backgroundColor: "#007bff", color: "white", padding: "4px 8px", borderRadius: 4 }}>
@@ -166,9 +201,7 @@ const [tr, setTr] = useState<number>(
             setDelta={val => setDeltaValues({ ...deltaValues, [resource.id]: val })}
             addAmount={() => handleAdd(resource.id)}
             subtractAmount={() => handleSubtract(resource.id)}
-            updateProduction={val => setResources(
-              resources.map(r => r.id === resource.id ? { ...r, production: val } : r)
-            )}
+            updateProduction={val => handleProductionChange(resource.id, val)}
           />
         ))}
       </div>
