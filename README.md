@@ -1,6 +1,14 @@
 # Red Planet Companion
 
-Red Planet Companion is a fan-made single-player strategy board game companion built for Mars Terraforming theme.
+Red Planet Companion is a fan-made strategy board game companion with React/TypeScript and native SwiftUI clients.
+
+## Demo
+
+[Live Web Demo](https://mars-azure-beta.vercel.app/)
+
+## Screenshot
+
+![Red Planet Companion screenshot](docs/images/screenshot.png)
 
 ## Project Structure
 
@@ -16,7 +24,7 @@ red-planet-companion/
 ├── protocol/
 │     ├── schemas/                 # 共通JSON Schema
 │     └── fixtures/                # 検証用フィクスチャ
-├── server/                        # ローカルマルチプレイサーバー（将来）
+├── server/                        # ローカルマルチプレイサーバー（次フェーズ）
 │     ├── src/
 │     └── test/
 ├── docs/                          # ドキュメント
@@ -31,7 +39,9 @@ red-planet-companion/
 - Terraform Rating tracking
 - Resource production phase
 - Undo / redo support
-- Local network multiplayer (future)
+- Browser localStorage and iOS UserDefaults persistence
+- Responsive web UI
+- Local network multiplayer protocol foundation
 
 ## Tech Stack
 
@@ -45,18 +55,42 @@ red-planet-companion/
 - Swift 5
 - iOS 17.0+
 
+### Protocol
+- JSON Schema Draft-07
+- Ajv validation
+
 ## Getting Started
 
 ### Web
+
 ```bash
 npm install
 npm start
 ```
 
+Open http://localhost:3000 in your browser.
+
 ### iOS
+
 ```bash
 open ios/teraformingmars2/teraformingmars2.xcodeproj
 ```
+
+## Project Goal
+
+This project explores maintainable cross-platform architecture for turn-based strategy game companion tools.
+
+## Roadmap
+
+- Improve UI/UX
+- Add save/load improvements
+- Refactor game logic into reusable modules
+- Implement the local WebSocket multiplayer server
+- Connect the Web and iOS clients to the shared protocol
+
+## Contributing
+
+Issues and pull requests are welcome.
 
 ## Disclaimer
 

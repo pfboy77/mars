@@ -5,7 +5,29 @@ ios/**/*.xcuserdata/*
 # macOS
 .DS_Store
 
-# Node
+# Node dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
 build/
+
+# Local environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
 *.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local API persistence
+local-data.json
